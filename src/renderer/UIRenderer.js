@@ -239,4 +239,83 @@ export class UIRenderer {
         ctx.fillText('💡 Can\'t see you clearly — try better light!', w / 2, 40);
         ctx.shadowBlur = 0;
     }
+
+    renderTraining(ctx, practicedState = {}, currentGesture) {
+        this.clear(ctx);
+        const w = this.renderer.width;
+        const h = this.renderer.height;
+
+        // Header Title Card
+        ctx.fillStyle = 'rgba(10, 10, 26, 0.75)';
+        ctx.beginPath();
+        ctx.roundRect(w / 2 - 270, 15, 540, 75, 18);
+        ctx.fill();
+
+        ctx.font = 'bold 26px Fredoka, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#FFD700';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        ctx.shadowBlur = 6;
+        ctx.fillText('🎓 Training Lobby — Practice Your Moves!', w / 2, 48);
+
+        ctx.font = '18px Fredoka, sans-serif';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillText('Lean left & right, jump, or duck to try out controls!', w / 2, 75);
+        ctx.shadowBlur = 0;
+
+        // 4 Practice Cards at bottom
+        const cardWidth = 190;
+        const cardHeight = 65;
+        const gap = 16;
+        const startX = (w - (4 * cardWidth + 3 * gap)) / 2;
+        const cardY = h - 90;
+
+        const moves = [
+            { key: 'SLIDE_LEFT', label: '⬅️ Slide Left' },
+            { key: 'SLIDE_RIGHT', label: '➡️ Slide Right' },
+            { key: 'JUMP', label: '⬆️ Jump' },
+            { key: 'DUCK', label: '⬇️ Duck' }
+        ];
+
+        moves.forEach((move, i) => {
+            const cx = startX + i * (cardWidth + gap);
+            const isDone = practicedState[move.key];
+            const isActive = currentGesture === move.key;
+
+            ctx.fillStyle = isActive ? '#2ECC71' : (isDone ? 'rgba(46, 204, 113, 0.25)' : 'rgba(255, 255, 255, 0.15)');
+            ctx.strokeStyle = isDone ? '#2ECC71' : 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 2;
+
+            ctx.beginPath();
+            ctx.roundRect(cx, cardY, cardWidth, cardHeight, 14);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.font = 'bold 19px Fredoka, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = isDone ? '#2ECC71' : '#FFFFFF';
+            ctx.fillText(move.label + (isDone ? ' ⭐' : ''), cx + cardWidth / 2, cardY + 40);
+        });
+
+        // Active gesture feedback pop-up in center screen
+        if (currentGesture) {
+            const gestureMap = {
+                'JUMP': { text: 'AWESOME JUMP! ⬆️', color: '#2ECC71' },
+                'DUCK': { text: 'GREAT DUCK! ⬇️', color: '#E67E22' },
+                'SLIDE_LEFT': { text: 'GREAT MOVE LEFT! ⬅️', color: '#3498DB' },
+                'SLIDE_RIGHT': { text: 'GREAT MOVE RIGHT! ➡️', color: '#3498DB' }
+            };
+            const info = gestureMap[currentGesture];
+            if (info) {
+                ctx.save();
+                ctx.font = 'bold 40px Fredoka, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = info.color;
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+                ctx.shadowBlur = 12;
+                ctx.fillText(info.text, w / 2, h / 2 - 20);
+                ctx.restore();
+            }
+        }
+    }
 }

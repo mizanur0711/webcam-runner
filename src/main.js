@@ -167,8 +167,9 @@ async function init() {
         // Enter initial IDLE state
         stateMachine.transition('IDLE');
 
-        // Show pause button
+        // Show control buttons
         if (pauseBtn) pauseBtn.style.display = 'flex';
+        if (trainingBtn) trainingBtn.style.display = 'flex';
 
         hideLoading();
         gameLoop.start();
@@ -222,6 +223,13 @@ if (muteBtn) {
   });
 }
 
+const trainingBtn = document.getElementById('training-btn');
+
+// In camera button handler initialization
+// Show pause and training buttons
+if (pauseBtn) pauseBtn.style.display = 'flex';
+if (trainingBtn) trainingBtn.style.display = 'flex';
+
 // Pause button (manual pause for parents)
 if (pauseBtn) {
   pauseBtn.addEventListener('click', () => {
@@ -232,6 +240,21 @@ if (pauseBtn) {
       } else if (stateMachine.currentState === 'PAUSED') {
         stateMachine.transition('PLAYING');
         pauseBtn.textContent = '⏸️';
+      }
+    }
+  });
+}
+
+// Training Lobby button
+if (trainingBtn) {
+  trainingBtn.addEventListener('click', () => {
+    if (stateMachine) {
+      if (stateMachine.currentState === 'TRAINING') {
+        stateMachine.transition('COUNTDOWN');
+        trainingBtn.textContent = '🎓 Practice';
+      } else {
+        stateMachine.transition('TRAINING');
+        trainingBtn.textContent = '🚀 Start Run';
       }
     }
   });

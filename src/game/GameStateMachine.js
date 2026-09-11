@@ -179,7 +179,7 @@ export class GameStateMachine {
       this.sys.difficultyManager.init(tier);
 
       if (this.sys.audioManager) this.sys.audioManager.playCalibrationDone();
-      this.transition('COUNTDOWN');
+      this.transition('TRAINING');
     } else if (this.sys.calibrator.isFailed && !this.sys.calibrator.isComplete) {
       this.transition('IDLE');
     }
@@ -197,6 +197,127 @@ export class GameStateMachine {
         uiCtx,
         this.sys.calibrator.progress,
         this.sys.calibrator.tooClose
+      );
+    }
+  }
+
+  // ================================================================
+  // TRAINING (Practice Lobby)
+  // ================================================================
+  enter_TRAINING() {
+    this.resetPlayer();
+    this.stateData.practiced = {
+      SLIDE_LEFT: false,
+      SLIDE_RIGHT: false,
+      JUMP: false,
+      DUCK: false
+    };
+    this.stateData.scrollOffset = this.stateData.scrollOffset || 0;
+  }
+
+  update_TRAINING(dt, landmarks) {
+    this.sys.presenceDetector.update(landmarks);
+    if (this.sys.presenceDetector.justLeft) {
+      this.transition('IDLE');
+      return;
+    }
+
+    // Scroll road gently
+    this.stateData.scrollOffset += 40 * dt;
+
+    // Gesture detection in Training Lobby
+    if (this.gestureDetector && landmarks) {
+      this.gestureDetector.update(landmarks, dt * 1000);
+
+      if (this.gestureDetector.hasNewGesture) {
+        const gesture = this.gestureDetector.currentGesture;
+        if (this.stateData.practiced) {
+          this.stateData.practiced[gesture] = true;
+        }
+
+        if (gesture === 'SLIDE_LEFT' && this.player.lane > -1) {
+          this.player.lane--;
+          if (this.sys.audioManager) this.sys.audioManager.playSlide();
+        }
+        if (gesture === 'SLIDE_RIGHT' && this.player.lane < 1) {
+          this.player.lane++;
+          if (this.sys.audioManager) this.sys.audioManager.playSlide();
+        }
+        if (gesture === 'JUMP' && !this.player.isJumping) {
+          this.player.isJumping = true;
+          this.player.vy = this.physics.jumpForce;
+          this.player.isDucking = false;
+          this.player.duckTimer = 0;
+          if (this.sys.audioManager) this.sys.audioManager.playJump();
+        }
+        if (gesture === 'DUCK' && !this.player.isJumping) {
+          this.player.isDucking = true;
+          this.player.duckTimer = this.physics.duckDuration;
+          if (this.sys.audioManager) this.sys.audioManager.playDuck();
+        }
+      }
+    }
+
+    // Jump physics
+    if (this.player.isJumping) {
+      this.player.vy -= this.physics.gravity * dt;
+      this.player.y += this.player.vy * dt;
+      if (this.player.y <= 0) {
+        this.player.y = 0;
+        this.player.isJumping = false;
+        this.player.vy = 0;
+      }
+    }
+
+    // Duck timer
+    if (this.player.isDucking) {
+      this.player.duckTimer -= dt;
+      if (this.player.duckTimer <= 0) {
+        this.player.isDucking = false;
+      }
+    }
+
+    // Smooth lane switching
+    const targetX = this.player.lane * this.physics.laneWidth;
+    const prevX = this.player.visualX;
+    const decay = 1 - Math.exp(-this.physics.responsiveness * dt);
+    this.player.visualX += (targetX - this.player.visualX) * decay;
+
+    // Banking tilt
+    const lateralVelocity = (this.player.visualX - prevX) / Math.max(dt, 0.001);
+    const maxTilt = 0.22;
+    const targetTilt = -(lateralVelocity / 800) * maxTilt;
+    this.player.tilt += (targetTilt - this.player.tilt) * (1 - Math.exp(-20 * dt));
+
+    // Player state for rendering
+    if (this.player.isJumping) this.player.state = 'JUMPING';
+    else if (this.player.isDucking) this.player.state = 'DUCKING';
+    else this.player.state = 'RUNNING';
+
+    // Animation frame
+    this.player.animFrame += dt * 8;
+  }
+
+  render_TRAINING(ctx, bgCtx, uiCtx) {
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    uiCtx.clearRect(0, 0, uiCtx.canvas.width, uiCtx.canvas.height);
+    if (this.sys.backgroundRenderer) this.sys.backgroundRenderer.render(bgCtx, this.theme, this.stateData.scrollOffset || 0);
+    if (this.sys.roadRenderer) this.sys.roadRenderer.render(ctx, this.stateData.scrollOffset || 0, this.theme);
+
+    // Draw character
+    if (this.sys.characterRenderer) {
+      this.sys.characterRenderer.render(ctx, {
+        ...this.player,
+        x: this.player.visualX
+      });
+    }
+
+    // Draw Training HUD
+    if (this.sys.uiRenderer) {
+      this.sys.uiRenderer.renderTraining(
+        uiCtx,
+        this.stateData.practiced,
+        this.gestureDetector ? this.gestureDetector.currentGesture : null
       );
     }
   }

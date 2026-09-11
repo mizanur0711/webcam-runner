@@ -29,16 +29,16 @@ export class GestureDetector {
       Tall: 0.28
     };
 
-    // Lateral thresholds by tier (% of frame width)
+    // Lateral thresholds by tier (% of frame width) — low thresholds for super-responsive left/right
     this.xThresholds = {
-      Small: 0.08,
-      Medium: 0.10,
-      Tall: 0.12
+      Small: 0.04,
+      Medium: 0.05,
+      Tall: 0.06
     };
 
-    this.cooldownDuration = this.cooldowns[this.tier] || 400;
+    this.cooldownDuration = this.cooldowns[this.tier] || 350;
     this.yThresh = (this.yThresholds[this.tier] || 0.20) * this.calibration.torsoHeight;
-    this.xThresh = (this.xThresholds[this.tier] || 0.10);
+    this.xThresh = (this.xThresholds[this.tier] || 0.05);
   }
 
   /**
@@ -73,6 +73,8 @@ export class GestureDetector {
     const rightShoulder = landmarks[12];
     const leftHip = landmarks[23];
     const rightHip = landmarks[24];
+    const leftWrist = landmarks[15];
+    const rightWrist = landmarks[16];
 
     const avgShoulderY = (leftShoulder.y + rightShoulder.y) / 2;
     const avgHipY = (leftHip.y + rightHip.y) / 2;
@@ -92,19 +94,20 @@ export class GestureDetector {
     else if (avgShoulderY > baselineShoulderY + this.yThresh) {
       newGesture = 'DUCK';
     }
-    // Slide Left: webcam is mirrored, moving left in real life = higher X in normalized
-    else if (centerX > baselineCenterX + this.xThresh) {
+    // Slide Left: webcam is mirrored, moving left in real life = higher X (torso lean OR hand reach)
+    else if (centerX > baselineCenterX + this.xThresh || (leftWrist && leftWrist.visibility > 0.3 && leftWrist.x > baselineCenterX + 0.12)) {
       newGesture = 'SLIDE_LEFT';
     }
-    // Slide Right
-    else if (centerX < baselineCenterX - this.xThresh) {
+    // Slide Right: lower X (torso lean OR hand reach)
+    else if (centerX < baselineCenterX - this.xThresh || (rightWrist && rightWrist.visibility > 0.3 && rightWrist.x < baselineCenterX - 0.12)) {
       newGesture = 'SLIDE_RIGHT';
     }
 
     if (newGesture && newGesture !== this.currentGesture) {
       this.currentGesture = newGesture;
       this.hasNewGesture = true;
-      this.cooldownTimer = this.cooldownDuration;
+      // Faster 250ms cooldown for lateral moves for instant double-sliding
+      this.cooldownTimer = (newGesture === 'SLIDE_LEFT' || newGesture === 'SLIDE_RIGHT') ? 250 : this.cooldownDuration;
     } else if (!newGesture) {
       this.currentGesture = null;
     }

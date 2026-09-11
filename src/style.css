@@ -247,6 +247,28 @@ html, body {
   padding: 0;
 }
 
+#training-btn {
+  position: absolute;
+  top: 20px;
+  right: 140px;
+  z-index: 20;
+  height: var(--btn-size);
+  padding: 0 18px;
+  border-radius: 24px;
+  border: 2px solid var(--color-glass-border);
+  background: linear-gradient(135deg, rgba(255, 204, 0, 0.25), rgba(78, 205, 196, 0.25));
+  backdrop-filter: blur(8px);
+  font-family: var(--font-primary);
+  font-size: 1rem;
+  font-weight: 600;
+  color: #FFFFFF;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 #mute-btn {
   top: 20px;
   right: 20px;
@@ -258,14 +280,16 @@ html, body {
 }
 
 #mute-btn:hover,
-#pause-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  transform: scale(1.1);
+#pause-btn:hover,
+#training-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.06);
 }
 
 #mute-btn:active,
-#pause-btn:active {
-  transform: scale(0.93);
+#pause-btn:active,
+#training-btn:active {
+  transform: scale(0.95);
 }
 
 /* ============================================================
