@@ -64,7 +64,7 @@ export class Calibrator {
     // Upper body height (nose to hips)
     const bboxHeight = hipY - nose.y;
 
-    this.samples.push({ shoulderY, hipY, centerX, bboxHeight });
+    this.samples.push({ shoulderY, hipY, centerX, bboxHeight, noseY: nose.y });
 
     // Detects player too close (bbox > 90% of frame)
     if (bboxHeight > 0.9) {
@@ -103,6 +103,7 @@ export class Calibrator {
     const avgHipY = this.getAverage(this.samples.map(s => s.hipY));
     const avgCenterX = this.getAverage(this.samples.map(s => s.centerX));
     const avgBboxHeight = this.getAverage(this.samples.map(s => s.bboxHeight));
+    const avgNoseY = this.getAverage(this.samples.map(s => s.noseY).filter(y => y !== undefined));
 
     const varShoulderY = this.getVariance(this.samples.map(s => s.shoulderY), avgShoulderY);
     const varCenterX = this.getVariance(this.samples.map(s => s.centerX), avgCenterX);
@@ -122,6 +123,7 @@ export class Calibrator {
       baselineShoulderY: avgShoulderY,
       baselineHipY: avgHipY,
       baselineCenterX: avgCenterX,
+      baselineNoseY: avgNoseY || (avgShoulderY - 0.12),
       heightTier: heightTier,
       torsoHeight: torsoHeight
     };
@@ -143,6 +145,7 @@ export class Calibrator {
       baselineShoulderY: 0.3,
       baselineHipY: 0.6,
       baselineCenterX: 0.5,
+      baselineNoseY: 0.18,
       heightTier: 'Medium',
       torsoHeight: 0.3
     };

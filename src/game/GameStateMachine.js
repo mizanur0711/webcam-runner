@@ -229,20 +229,18 @@ export class GameStateMachine {
     if (this.gestureDetector && landmarks) {
       this.gestureDetector.update(landmarks, dt * 1000);
 
+      // Direct lane sync with zone position
+      if (this.gestureDetector.targetLane !== undefined && this.player.lane !== this.gestureDetector.targetLane) {
+        this.player.lane = this.gestureDetector.targetLane;
+        if (this.sys.audioManager) this.sys.audioManager.playSlide();
+      }
+
       if (this.gestureDetector.hasNewGesture) {
         const gesture = this.gestureDetector.currentGesture;
         if (this.stateData.practiced) {
           this.stateData.practiced[gesture] = true;
         }
 
-        if (gesture === 'SLIDE_LEFT' && this.player.lane > -1) {
-          this.player.lane--;
-          if (this.sys.audioManager) this.sys.audioManager.playSlide();
-        }
-        if (gesture === 'SLIDE_RIGHT' && this.player.lane < 1) {
-          this.player.lane++;
-          if (this.sys.audioManager) this.sys.audioManager.playSlide();
-        }
         if (gesture === 'JUMP' && !this.player.isJumping) {
           this.player.isJumping = true;
           this.player.vy = this.physics.jumpForce;
@@ -387,17 +385,15 @@ export class GameStateMachine {
     if (this.gestureDetector && landmarks) {
       this.gestureDetector.update(landmarks, dt * 1000);
 
+      // Direct lane sync with zone position
+      if (this.gestureDetector.targetLane !== undefined && this.player.lane !== this.gestureDetector.targetLane) {
+        this.player.lane = this.gestureDetector.targetLane;
+        if (this.sys.audioManager) this.sys.audioManager.playSlide();
+      }
+
       if (this.gestureDetector.hasNewGesture) {
         const gesture = this.gestureDetector.currentGesture;
 
-        if (gesture === 'SLIDE_LEFT' && this.player.lane > -1) {
-          this.player.lane--;
-          if (this.sys.audioManager) this.sys.audioManager.playSlide();
-        }
-        if (gesture === 'SLIDE_RIGHT' && this.player.lane < 1) {
-          this.player.lane++;
-          if (this.sys.audioManager) this.sys.audioManager.playSlide();
-        }
         if (gesture === 'JUMP' && !this.player.isJumping) {
           this.player.isJumping = true;
           this.player.vy = this.physics.jumpForce;

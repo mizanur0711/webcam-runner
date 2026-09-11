@@ -95,7 +95,7 @@ export class Renderer {
             ctx.lineWidth = 1;
             ctx.setLineDash([3, 3]);
 
-            // Shoulder baseline Y
+            // Shoulder & Nose baseline Y
             if (calibration.baselineShoulderY !== undefined) {
                 const sy = calibration.baselineShoulderY * h;
                 ctx.strokeStyle = 'rgba(46, 204, 113, 0.7)';
@@ -105,13 +105,12 @@ export class Renderer {
                 ctx.stroke();
             }
 
-            // Hip baseline Y
-            if (calibration.baselineHipY !== undefined) {
-                const hy = calibration.baselineHipY * h;
-                ctx.strokeStyle = 'rgba(46, 204, 113, 0.7)';
+            if (calibration.baselineNoseY !== undefined) {
+                const ny = calibration.baselineNoseY * h;
+                ctx.strokeStyle = 'rgba(52, 152, 219, 0.6)';
                 ctx.beginPath();
-                ctx.moveTo(0, hy);
-                ctx.lineTo(w, hy);
+                ctx.moveTo(0, ny);
+                ctx.lineTo(w, ny);
                 ctx.stroke();
             }
 
@@ -121,21 +120,21 @@ export class Renderer {
                 const zoneOffset = 0.06 * w; // 6% zone width offset
 
                 // Center guide line
-                ctx.strokeStyle = 'rgba(52, 152, 219, 0.7)';
+                ctx.strokeStyle = 'rgba(52, 152, 219, 0.8)';
                 ctx.beginPath();
                 ctx.moveTo(cx, 0);
                 ctx.lineTo(cx, h);
                 ctx.stroke();
 
                 // Left zone boundary line (screen right when mirrored)
-                ctx.strokeStyle = 'rgba(255, 204, 0, 0.5)';
+                ctx.strokeStyle = 'rgba(255, 204, 0, 0.6)';
                 ctx.beginPath();
                 ctx.moveTo(cx - zoneOffset, 0);
                 ctx.lineTo(cx - zoneOffset, h);
                 ctx.stroke();
 
                 // Right zone boundary line (screen left when mirrored)
-                ctx.strokeStyle = 'rgba(255, 204, 0, 0.5)';
+                ctx.strokeStyle = 'rgba(255, 204, 0, 0.6)';
                 ctx.beginPath();
                 ctx.moveTo(cx + zoneOffset, 0);
                 ctx.lineTo(cx + zoneOffset, h);
