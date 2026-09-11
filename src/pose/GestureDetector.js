@@ -25,12 +25,12 @@ export class GestureDetector {
     this.targetLane = 0; // -1: LEFT, 0: CENTER, 1: RIGHT
 
     // Tier-adjusted thresholds
-    const xThreshMap = { Small: 0.05, Medium: 0.06, Tall: 0.07 };
-    this.xThresh = xThreshMap[this.tier] || 0.06;
+    const xThreshMap = { Small: 0.08, Medium: 0.10, Tall: 0.12 };
+    this.xThresh = xThreshMap[this.tier] || 0.10;
 
     // Vertical thresholds tailored to torso height for kids
     const torsoH = Math.max(this.calibration.torsoHeight || 0.3, 0.15);
-    this.jumpThresh = Math.max(0.065, 0.18 * torsoH); // Higher threshold to eliminate auto-jumping
+    this.jumpThresh = Math.max(0.042, 0.13 * torsoH); // Low-effort jump trigger for kids
     this.duckThresh = Math.max(0.075, 0.20 * torsoH); // Higher threshold to eliminate accidental ducks
   }
 
@@ -90,7 +90,7 @@ export class GestureDetector {
 
     // ----- 1. LATERAL ZONE DISCRETE TRANSITION & DIRECT POSITIONAL MAPPING -----
     let newZone = this.currentZone;
-    const buffer = 0.018; // Hysteresis buffer to prevent jitter at zone boundary
+    const buffer = 0.035; // Hysteresis buffer to prevent jitter at zone boundary
 
     if (this.currentZone === 'CENTER') {
       if (dx > this.xThresh) newZone = 'LEFT';         // Stepped left physically (screen right in mirrored view)
@@ -126,15 +126,14 @@ export class GestureDetector {
 
     // Robust Filtering Checks
     const shoulderTilt = Math.abs(leftShoulder.y - rightShoulder.y);
-    const isLeaning = shoulderTilt > 0.035; // Player is tilting/leaning sideways
-    const isMovingLaterally = Math.abs(dx) > this.xThresh * 0.5;
+    const isLeaning = shoulderTilt > 0.040; // Player is tilting/leaning sideways
+    const isMovingLaterally = Math.abs(dx) > this.xThresh * 0.6;
 
-    // JUMP checks: Both shoulders, head, and hips rise
-    const bothShouldersRose = (leftShoulder.y < baselineShoulderY - this.jumpThresh * 0.5) &&
-                              (rightShoulder.y < baselineShoulderY - this.jumpThresh * 0.5);
-    const noseRose = nose ? (nose.y < baseNoseY - this.jumpThresh * 0.5) : true;
-    const hipRose = (leftHip && rightHip) ? (avgHipY < baselineHipY - this.jumpThresh * 0.3) : true;
-    const effJumpThresh = isMovingLaterally ? this.jumpThresh * 1.4 : this.jumpThresh;
+    // JUMP checks: Upper body elevation rise
+    const bothShouldersRose = (leftShoulder.y < baselineShoulderY - this.jumpThresh * 0.4) &&
+                              (rightShoulder.y < baselineShoulderY - this.jumpThresh * 0.4);
+    const noseRose = nose ? (nose.y < baseNoseY - this.jumpThresh * 0.4) : false;
+    const effJumpThresh = isMovingLaterally ? this.jumpThresh * 1.3 : this.jumpThresh;
 
     // DUCK checks: Both shoulders and head drop
     const bothShouldersDropped = (leftShoulder.y > baselineShoulderY + this.duckThresh * 0.6) &&
@@ -143,18 +142,16 @@ export class GestureDetector {
     const effDuckThresh = isMovingLaterally ? this.duckThresh * 1.5 : this.duckThresh;
 
     if (!triggeredGesture) {
-      // JUMP: Both shoulders, head, and hips rise significantly, body is upright (not tilted)
+      // JUMP: Upper body rises smoothly (nose or shoulders elevated, body upright)
       if (
         this.jumpCooldown <= 0 &&
         !isLeaning &&
-        bothShouldersRose &&
-        noseRose &&
-        hipRose &&
+        (bothShouldersRose || noseRose) &&
         verticalDelta > effJumpThresh
       ) {
         triggeredGesture = 'JUMP';
-        this.jumpCooldown = 550;    // 550ms jump cooldown
-        this.landingLockout = 700;  // 700ms landing lockout to prevent crouching crouch-duck on landing
+        this.jumpCooldown = 500;    // 500ms jump cooldown
+        this.landingLockout = 650;  // 650ms landing lockout to prevent crouching crouch-duck on landing
       }
       // DUCK: Both shoulders and head drop significantly, body is upright (not tilted)
       else if (

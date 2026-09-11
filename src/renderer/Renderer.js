@@ -117,7 +117,7 @@ export class Renderer {
             // Center baseline X & Zone boundaries
             if (calibration.baselineCenterX !== undefined) {
                 const cx = (1 - calibration.baselineCenterX) * w;
-                const zoneOffset = 0.06 * w; // 6% zone width offset
+                const zoneOffset = 0.10 * w; // 10% zone width offset
 
                 // Center guide line
                 ctx.strokeStyle = 'rgba(52, 152, 219, 0.8)';
