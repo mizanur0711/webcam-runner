@@ -1,5 +1,6 @@
 /**
  * Interprets landmarks into game gestures relative to calibration baseline
+ * Uses a Zone Discrete Transition model for unambiguous, glitch-free control.
  */
 export class GestureDetector {
   /**
@@ -8,44 +9,33 @@ export class GestureDetector {
    */
   constructor(calibrationResult, tier) {
     this.calibration = calibrationResult;
-    this.tier = tier;
-    
+    this.tier = tier || 'Medium';
+
     this.currentGesture = null;
     this.hasNewGesture = false;
 
-    this.cooldownTimer = 0;
-    
-    // Cooldowns by tier
-    this.cooldowns = {
-      Small: 500,
-      Medium: 400,
-      Tall: 300
-    };
+    // Cooldown timers for vertical actions
+    this.jumpCooldown = 0;
+    this.duckCooldown = 0;
 
-    // Vertical thresholds by tier (% of torso height)
-    this.yThresholds = {
-      Small: 0.12,
-      Medium: 0.20,
-      Tall: 0.28
-    };
+    // Lateral zone state: 'CENTER', 'LEFT', 'RIGHT'
+    this.currentZone = 'CENTER';
 
-    // Lateral thresholds by tier (% of frame width) — low thresholds for super-responsive left/right
-    this.xThresholds = {
-      Small: 0.04,
-      Medium: 0.05,
-      Tall: 0.06
-    };
+    // Thresholds by tier
+    const xThreshMap = { Small: 0.05, Medium: 0.06, Tall: 0.07 };
+    const yThreshMap = { Small: 0.14, Medium: 0.18, Tall: 0.22 };
 
-    this.cooldownDuration = this.cooldowns[this.tier] || 350;
-    this.yThresh = (this.yThresholds[this.tier] || 0.20) * this.calibration.torsoHeight;
-    this.xThresh = (this.xThresholds[this.tier] || 0.05);
+    this.xThresh = xThreshMap[this.tier] || 0.06;
+    this.yThresh = (yThreshMap[this.tier] || 0.18) * Math.max(this.calibration.torsoHeight || 0.3, 0.15);
   }
 
   /**
-   * Clear cooldowns and reset state
+   * Clear state and reset to center zone
    */
   reset() {
-    this.cooldownTimer = 0;
+    this.jumpCooldown = 0;
+    this.duckCooldown = 0;
+    this.currentZone = 'CENTER';
     this.currentGesture = null;
     this.hasNewGesture = false;
   }
@@ -58,11 +48,8 @@ export class GestureDetector {
   update(landmarks, dt) {
     this.hasNewGesture = false;
 
-    if (this.cooldownTimer > 0) {
-      this.cooldownTimer -= dt;
-      if (this.cooldownTimer < 0) this.cooldownTimer = 0;
-      return; // Waiting for cooldown
-    }
+    if (this.jumpCooldown > 0) this.jumpCooldown -= dt;
+    if (this.duckCooldown > 0) this.duckCooldown -= dt;
 
     if (!landmarks) {
       this.currentGesture = null;
@@ -73,42 +60,66 @@ export class GestureDetector {
     const rightShoulder = landmarks[12];
     const leftHip = landmarks[23];
     const rightHip = landmarks[24];
-    const leftWrist = landmarks[15];
-    const rightWrist = landmarks[16];
+
+    if (!leftShoulder || !rightShoulder) {
+      this.currentGesture = null;
+      return;
+    }
 
     const avgShoulderY = (leftShoulder.y + rightShoulder.y) / 2;
-    const avgHipY = (leftHip.y + rightHip.y) / 2;
+    const avgHipY = (leftHip && rightHip) ? (leftHip.y + rightHip.y) / 2 : avgShoulderY + 0.3;
     const shoulderX = (leftShoulder.x + rightShoulder.x) / 2;
-    const hipX = (leftHip.x + rightHip.x) / 2;
+    const hipX = (leftHip && rightHip) ? (leftHip.x + rightHip.x) / 2 : shoulderX;
     const centerX = (shoulderX + hipX) / 2;
 
     const { baselineShoulderY, baselineHipY, baselineCenterX } = this.calibration;
+    const dx = centerX - baselineCenterX;
 
-    let newGesture = null;
+    let triggeredGesture = null;
 
-    // Jumping = upper body (hips or shoulders/chest) moves upward
-    if (avgHipY < baselineHipY - this.yThresh || avgShoulderY < baselineShoulderY - this.yThresh) {
-      newGesture = 'JUMP';
-    } 
-    // Ducking = higher Y value (shoulders drop)
-    else if (avgShoulderY > baselineShoulderY + this.yThresh) {
-      newGesture = 'DUCK';
-    }
-    // Slide Left: webcam is mirrored, moving left in real life = higher X (torso lean OR hand reach)
-    else if (centerX > baselineCenterX + this.xThresh || (leftWrist && leftWrist.visibility > 0.3 && leftWrist.x > baselineCenterX + 0.12)) {
-      newGesture = 'SLIDE_LEFT';
-    }
-    // Slide Right: lower X (torso lean OR hand reach)
-    else if (centerX < baselineCenterX - this.xThresh || (rightWrist && rightWrist.visibility > 0.3 && rightWrist.x < baselineCenterX - 0.12)) {
-      newGesture = 'SLIDE_RIGHT';
+    // ----- 1. LATERAL ZONE DISCRETE TRANSITION LOGIC -----
+    let newZone = this.currentZone;
+    const buffer = 0.015; // Hysteresis buffer to prevent chattering at zone boundary
+
+    if (this.currentZone === 'CENTER') {
+      if (dx > this.xThresh) newZone = 'LEFT';         // Stepped left in real life
+      else if (dx < -this.xThresh) newZone = 'RIGHT';   // Stepped right in real life
+    } else if (this.currentZone === 'LEFT') {
+      if (dx < this.xThresh - buffer) newZone = 'CENTER';
+    } else if (this.currentZone === 'RIGHT') {
+      if (dx > -this.xThresh + buffer) newZone = 'CENTER';
     }
 
-    if (newGesture && newGesture !== this.currentGesture) {
-      this.currentGesture = newGesture;
+    if (newZone !== this.currentZone) {
+      // Determine discrete lateral action
+      if (this.currentZone === 'CENTER' && newZone === 'LEFT') triggeredGesture = 'SLIDE_LEFT';
+      else if (this.currentZone === 'RIGHT' && newZone === 'CENTER') triggeredGesture = 'SLIDE_LEFT';
+      else if (this.currentZone === 'RIGHT' && newZone === 'LEFT') triggeredGesture = 'SLIDE_LEFT';
+      else if (this.currentZone === 'CENTER' && newZone === 'RIGHT') triggeredGesture = 'SLIDE_RIGHT';
+      else if (this.currentZone === 'LEFT' && newZone === 'CENTER') triggeredGesture = 'SLIDE_RIGHT';
+      else if (this.currentZone === 'LEFT' && newZone === 'RIGHT') triggeredGesture = 'SLIDE_RIGHT';
+
+      this.currentZone = newZone;
+    }
+
+    // ----- 2. VERTICAL TRANSIENT ACTIONS (JUMP & DUCK) -----
+    if (!triggeredGesture) {
+      // Jump: upper body moves upward relative to baseline
+      if (this.jumpCooldown <= 0 && (avgShoulderY < baselineShoulderY - this.yThresh || avgHipY < baselineHipY - this.yThresh)) {
+        triggeredGesture = 'JUMP';
+        this.jumpCooldown = 450; // 450ms jump action cooldown
+      }
+      // Duck: shoulders/chest drop relative to baseline
+      else if (this.duckCooldown <= 0 && avgShoulderY > baselineShoulderY + this.yThresh) {
+        triggeredGesture = 'DUCK';
+        this.duckCooldown = 450; // 450ms duck action cooldown
+      }
+    }
+
+    if (triggeredGesture) {
+      this.currentGesture = triggeredGesture;
       this.hasNewGesture = true;
-      // Faster 250ms cooldown for lateral moves for instant double-sliding
-      this.cooldownTimer = (newGesture === 'SLIDE_LEFT' || newGesture === 'SLIDE_RIGHT') ? 250 : this.cooldownDuration;
-    } else if (!newGesture) {
+    } else {
       this.currentGesture = null;
     }
   }

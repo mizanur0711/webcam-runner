@@ -115,13 +115,30 @@ export class Renderer {
                 ctx.stroke();
             }
 
-            // Center baseline X
+            // Center baseline X & Zone boundaries
             if (calibration.baselineCenterX !== undefined) {
                 const cx = (1 - calibration.baselineCenterX) * w;
+                const zoneOffset = 0.06 * w; // 6% zone width offset
+
+                // Center guide line
                 ctx.strokeStyle = 'rgba(52, 152, 219, 0.7)';
                 ctx.beginPath();
                 ctx.moveTo(cx, 0);
                 ctx.lineTo(cx, h);
+                ctx.stroke();
+
+                // Left zone boundary line (screen right when mirrored)
+                ctx.strokeStyle = 'rgba(255, 204, 0, 0.5)';
+                ctx.beginPath();
+                ctx.moveTo(cx - zoneOffset, 0);
+                ctx.lineTo(cx - zoneOffset, h);
+                ctx.stroke();
+
+                // Right zone boundary line (screen left when mirrored)
+                ctx.strokeStyle = 'rgba(255, 204, 0, 0.5)';
+                ctx.beginPath();
+                ctx.moveTo(cx + zoneOffset, 0);
+                ctx.lineTo(cx + zoneOffset, h);
                 ctx.stroke();
             }
 
