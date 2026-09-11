@@ -7,7 +7,8 @@ export class BackgroundRenderer {
     }
 
     setTheme(themeName) {
-        this.themeName = themeName;
+        const themeKey = themeName ? themeName.charAt(0).toUpperCase() + themeName.slice(1).toLowerCase() : 'Forest';
+        this.themeName = themeKey;
         this.elements = [];
         
         // Seed random heights for consistency within a theme run
@@ -17,7 +18,7 @@ export class BackgroundRenderer {
             return seed / 233280;
         };
 
-        if (themeName === 'Forest') {
+        if (themeKey === 'Forest') {
             for (let i = 0; i < 20; i++) {
                 this.elements.push({
                     type: 'mountain',
@@ -34,7 +35,7 @@ export class BackgroundRenderer {
                     parallax: 0.3
                 });
             }
-        } else if (themeName === 'City') {
+        } else if (themeKey === 'City') {
             for (let i = 0; i < 30; i++) {
                 this.elements.push({
                     type: 'building',
@@ -46,7 +47,7 @@ export class BackgroundRenderer {
                     parallax: 0.15
                 });
             }
-        } else if (themeName === 'Space') {
+        } else if (themeKey === 'Space') {
             for (let i = 0; i < 50; i++) {
                 this.elements.push({
                     type: 'star',
@@ -58,7 +59,7 @@ export class BackgroundRenderer {
             }
             this.elements.push({ type: 'planet', x: this.renderer.width * 0.2, y: this.renderer.height * 0.1, radius: 40, color1: '#ff5555', color2: '#aa0000', parallax: 0.05 });
             this.elements.push({ type: 'planet', x: this.renderer.width * 0.8, y: this.renderer.height * 0.2, radius: 25, color1: '#5555ff', color2: '#0000aa', parallax: 0.08 });
-        } else if (themeName === 'Candy') {
+        } else if (themeKey === 'Candy') {
             for (let i = 0; i < 15; i++) {
                 this.elements.push({
                     type: 'hill',
@@ -79,8 +80,9 @@ export class BackgroundRenderer {
     }
 
     render(ctx, themeName, scrollOffset) {
-        if (this.themeName !== themeName) {
-            this.setTheme(themeName);
+        const themeKey = themeName ? themeName.charAt(0).toUpperCase() + themeName.slice(1).toLowerCase() : 'Forest';
+        if (this.themeName !== themeKey) {
+            this.setTheme(themeKey);
         }
 
         const width = this.renderer.width;
@@ -99,7 +101,7 @@ export class BackgroundRenderer {
             'Candy': ['#ffb6c1', '#dda0dd']
         };
 
-        const colors = skyGradients[themeName] || skyGradients['Forest'];
+        const colors = skyGradients[themeKey] || skyGradients['Forest'];
         const gradient = ctx.createLinearGradient(0, 0, 0, horizon);
         gradient.addColorStop(0, colors[0]);
         gradient.addColorStop(1, colors[1]);

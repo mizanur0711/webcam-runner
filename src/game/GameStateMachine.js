@@ -43,7 +43,7 @@ export class GameStateMachine {
       responsiveness: 16
     };
 
-    this.theme = 'forest';
+    this.theme = 'Forest';
   }
 
   /**
@@ -83,7 +83,7 @@ export class GameStateMachine {
   // IDLE
   // ================================================================
   enter_IDLE() {
-    const themes = ['forest', 'city', 'space', 'candy'];
+    const themes = ['Forest', 'City', 'Space', 'Candy'];
     this.theme = themes[Math.floor(Math.random() * themes.length)];
     this.sys.scoreManager.reset();
     this.sys.obstacleManager.reset();

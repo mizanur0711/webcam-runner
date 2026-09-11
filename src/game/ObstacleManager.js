@@ -76,6 +76,7 @@ export class ObstacleManager {
         obs.active = true;
         obs.type = type;
         obs.lane = lane;
+        obs.x = lane * 180;
         obs.z = 2800;
         obs.prevZ = obs.z;
 

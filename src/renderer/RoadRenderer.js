@@ -15,7 +15,8 @@ export class RoadRenderer {
     }
 
     render(ctx, scrollOffset, themeName) {
-        const theme = this.themes[themeName] || this.themes['Forest'];
+        const themeKey = themeName ? themeName.charAt(0).toUpperCase() + themeName.slice(1).toLowerCase() : 'Forest';
+        const theme = this.themes[themeKey] || this.themes['Forest'];
         
         // Draw from back to front
         for (let i = this.segments - 1; i >= 0; i--) {
