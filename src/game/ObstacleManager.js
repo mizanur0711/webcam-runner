@@ -53,7 +53,10 @@ export class ObstacleManager {
         this.spawnTimer -= dt;
         if (this.spawnTimer <= 0) {
             this.spawn();
-            this.spawnTimer = this.difficultyManager.getObstacleInterval();
+            const interval = (this.difficultyManager && typeof this.difficultyManager.getObstacleInterval === 'function')
+                ? this.difficultyManager.getObstacleInterval()
+                : 2.0;
+            this.spawnTimer = interval;
         }
     }
 

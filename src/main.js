@@ -113,8 +113,9 @@ async function init() {
     const scoreManager = new ScoreManager();
     const difficultyManager = new DifficultyManager();
 
-    // Init score manager (loads high score from localStorage)
+    // Init managers
     scoreManager.init();
+    obstacleManager.init(difficultyManager);
 
     // 4. Load MediaPipe model
     setStatus('Loading pose detection model...');

@@ -10,6 +10,9 @@ export class GameStateMachine {
    */
   constructor({ presenceDetector, calibrator, obstacleManager, collisionDetector, scoreManager, difficultyManager, audioManager, renderer, uiRenderer, characterRenderer, obstacleRenderer, roadRenderer, backgroundRenderer }) {
     this.sys = { presenceDetector, calibrator, obstacleManager, collisionDetector, scoreManager, difficultyManager, audioManager, renderer, uiRenderer, characterRenderer, obstacleRenderer, roadRenderer, backgroundRenderer };
+    if (this.sys.obstacleManager && this.sys.difficultyManager) {
+      this.sys.obstacleManager.init(this.sys.difficultyManager);
+    }
 
     /** @type {GestureDetector|null} */
     this.gestureDetector = null;
