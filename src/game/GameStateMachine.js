@@ -54,6 +54,7 @@ export class GameStateMachine {
     const exitMethod = `exit_${this.currentState}`;
     if (this[exitMethod]) this[exitMethod]();
 
+    this.previousState = this.currentState;
     this.currentState = newState;
 
     const enterMethod = `enter_${newState}`;
@@ -241,9 +242,11 @@ export class GameStateMachine {
   // PLAYING
   // ================================================================
   enter_PLAYING() {
-    this.sys.obstacleManager.reset();
-    this.sys.scoreManager.reset();
-    this.sys.difficultyManager.reset();
+    if (this.previousState !== 'PAUSED') {
+      this.sys.obstacleManager.reset();
+      this.sys.scoreManager.reset();
+      this.sys.difficultyManager.reset();
+    }
     if (this.gestureDetector) this.gestureDetector.reset();
     this.stateData.scrollOffset = this.stateData.scrollOffset || 0;
   }

@@ -57,7 +57,7 @@ export class ObstacleManager {
         }
     }
 
-    spawn() {
+    spawn(initialZ) {
         const obs = this.pool.find(o => !o.active);
         if (!obs) return;
 
@@ -69,15 +69,11 @@ export class ObstacleManager {
 
         let lane = Math.floor(Math.random() * 3) - 1; // -1, 0, 1
 
-        if (type === 'SIDE') {
-            // Ensure adjacent lane is free (not strict here since we spawn one at a time, but good practice)
-        }
-
         obs.active = true;
         obs.type = type;
         obs.lane = lane;
         obs.x = lane * 180;
-        obs.z = 2800;
+        obs.z = initialZ || 1800;
         obs.prevZ = obs.z;
 
         if (type === 'LOW') {
@@ -100,10 +96,7 @@ export class ObstacleManager {
         for (const obs of this.pool) {
             obs.active = false;
         }
-        if (this.difficultyManager) {
-            this.spawnTimer = this.difficultyManager.getObstacleInterval();
-        } else {
-            this.spawnTimer = 2;
-        }
+        // First obstacle spawns quickly (0.5s)
+        this.spawnTimer = 0.5;
     }
 }
