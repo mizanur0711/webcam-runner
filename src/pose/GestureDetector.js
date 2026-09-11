@@ -31,7 +31,7 @@ export class GestureDetector {
     // Vertical thresholds tailored to torso height for kids
     const torsoH = Math.max(this.calibration.torsoHeight || 0.3, 0.15);
     this.jumpThresh = Math.max(0.035, 0.11 * torsoH);
-    this.duckThresh = Math.max(0.045, 0.13 * torsoH);
+    this.duckThresh = Math.max(0.075, 0.20 * torsoH); // Higher threshold to eliminate accidental ducks
   }
 
   /**
@@ -124,6 +124,17 @@ export class GestureDetector {
 
     const verticalDelta = baseUpperY - currentUpperY; // Positive = UP (jump), Negative = DOWN (duck)
 
+    // Robust DUCK filtering checks
+    const shoulderTilt = Math.abs(leftShoulder.y - rightShoulder.y);
+    const isLeaning = shoulderTilt > 0.035; // Player is tilting/leaning sideways
+    const isMovingLaterally = Math.abs(dx) > this.xThresh * 0.5;
+
+    const bothShouldersDropped = (leftShoulder.y > baselineShoulderY + this.duckThresh * 0.6) &&
+                                 (rightShoulder.y > baselineShoulderY + this.duckThresh * 0.6);
+    const noseDropped = nose ? (nose.y > baseNoseY + this.duckThresh * 0.6) : true;
+
+    const effDuckThresh = isMovingLaterally ? this.duckThresh * 1.5 : this.duckThresh;
+
     if (!triggeredGesture) {
       // JUMP: Upper body moves upward
       if (this.jumpCooldown <= 0 && verticalDelta > this.jumpThresh) {
@@ -131,8 +142,15 @@ export class GestureDetector {
         this.jumpCooldown = 500;    // 500ms jump cooldown
         this.landingLockout = 700;  // 700ms landing lockout to prevent crouching crouch-duck on landing
       }
-      // DUCK: Upper body drops downward (and no active landing lockout)
-      else if (this.duckCooldown <= 0 && this.landingLockout <= 0 && verticalDelta < -this.duckThresh) {
+      // DUCK: Both shoulders and head drop significantly, body is upright (not tilted)
+      else if (
+        this.duckCooldown <= 0 &&
+        this.landingLockout <= 0 &&
+        !isLeaning &&
+        bothShouldersDropped &&
+        noseDropped &&
+        verticalDelta < -effDuckThresh
+      ) {
         triggeredGesture = 'DUCK';
         this.duckCooldown = 450;    // 450ms duck cooldown
       }
