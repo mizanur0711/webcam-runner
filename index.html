@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A webcam-controlled endless runner game for kids ages 2-5. Jump, duck, and slide using body movements!">
+  <title>Webcam Runner — Move Your Body!</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <div id="game-container">
+    <!-- Background layer canvas (sky, mountains — redrawn infrequently) -->
+    <canvas id="bg-canvas"></canvas>
+    <!-- Main game canvas (road, obstacles, player — 60fps) -->
+    <canvas id="game-canvas"></canvas>
+    <!-- UI/HUD canvas (score, overlays — redrawn on change) -->
+    <canvas id="ui-canvas"></canvas>
+
+    <!-- Hidden webcam video element (input for MediaPipe) -->
+    <video id="webcam-video" autoplay playsinline muted></video>
+
+    <!-- PiP webcam overlay (visible, bottom-right) -->
+    <canvas id="pip-canvas"></canvas>
+
+    <!-- Loading overlay -->
+    <div id="loading-overlay">
+      <div class="loading-content">
+        <div class="loading-spinner"></div>
+        <h1>Loading...</h1>
+        <p id="loading-status">Preparing the game</p>
+      </div>
+    </div>
+
+    <!-- Camera permission overlay -->
+    <div id="camera-overlay" style="display: none;">
+      <div class="camera-content">
+        <div class="camera-icon">📷</div>
+        <h1>Camera Access Needed</h1>
+        <p>This game uses your camera to detect body movements.<br>No video is recorded or sent anywhere.</p>
+        <button id="camera-btn">Enable Camera</button>
+      </div>
+    </div>
+
+    <!-- Mute button (parent-accessible) -->
+    <button id="mute-btn" title="Toggle Sound">🔊</button>
+
+    <!-- Pause button (parent-accessible) -->
+    <button id="pause-btn" title="Pause Game" style="display: none;">⏸️</button>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

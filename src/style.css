@@ -1,0 +1,293 @@
+/* ============================================================
+   Webcam Runner — Global Styles
+   ============================================================ */
+
+/* CSS Reset & Base */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --font-primary: 'Fredoka', sans-serif;
+  --color-bg: #0a0a1a;
+  --color-text: #ffffff;
+  --color-accent: #ffcc00;
+  --color-accent-glow: rgba(255, 204, 0, 0.4);
+  --color-overlay: rgba(10, 10, 26, 0.85);
+  --color-glass: rgba(255, 255, 255, 0.08);
+  --color-glass-border: rgba(255, 255, 255, 0.15);
+  --pip-size: 180px;
+  --btn-size: 48px;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--color-bg);
+  font-family: var(--font-primary);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ============================================================
+   Game Container — Full Viewport
+   ============================================================ */
+#game-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ============================================================
+   Layered Canvases
+   ============================================================ */
+#bg-canvas,
+#game-canvas,
+#ui-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#bg-canvas { z-index: 1; }
+#game-canvas { z-index: 2; }
+#ui-canvas { z-index: 3; pointer-events: none; }
+
+/* ============================================================
+   Hidden Webcam Video (input for MediaPipe)
+   ============================================================ */
+#webcam-video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* ============================================================
+   PiP Webcam Overlay
+   ============================================================ */
+#pip-canvas {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  width: var(--pip-size);
+  height: calc(var(--pip-size) * 0.75);
+  border-radius: 16px;
+  border: 3px solid var(--color-glass-border);
+  background: rgba(0, 0, 0, 0.5);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
+  z-index: 10;
+  object-fit: cover;
+}
+
+/* ============================================================
+   Loading Overlay
+   ============================================================ */
+#loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  z-index: 100;
+  transition: opacity 0.6s ease-out;
+}
+
+#loading-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loading-content {
+  text-align: center;
+}
+
+.loading-content h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-top: 24px;
+  background: linear-gradient(135deg, #ffcc00, #ff6b6b, #4ecdc4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.loading-content p {
+  font-size: 1.1rem;
+  margin-top: 12px;
+  opacity: 0.6;
+}
+
+/* Spinner */
+.loading-spinner {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto;
+  border: 4px solid var(--color-glass-border);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================================
+   Camera Permission Overlay
+   ============================================================ */
+#camera-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-overlay);
+  backdrop-filter: blur(12px);
+  z-index: 90;
+}
+
+.camera-content {
+  text-align: center;
+  padding: 48px 64px;
+  border-radius: 24px;
+  background: var(--color-glass);
+  border: 1px solid var(--color-glass-border);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+  max-width: 480px;
+}
+
+.camera-icon {
+  font-size: 4rem;
+  margin-bottom: 16px;
+  animation: float 2s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.camera-content h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.camera-content p {
+  font-size: 1rem;
+  line-height: 1.6;
+  opacity: 0.7;
+  margin-bottom: 28px;
+}
+
+#camera-btn {
+  display: inline-block;
+  padding: 16px 40px;
+  font-family: var(--font-primary);
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #0a0a1a;
+  background: linear-gradient(135deg, #ffcc00, #ff9500);
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 4px 20px var(--color-accent-glow);
+}
+
+#camera-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 30px var(--color-accent-glow);
+}
+
+#camera-btn:active {
+  transform: scale(0.97);
+}
+
+/* ============================================================
+   Mute & Pause Buttons
+   ============================================================ */
+#mute-btn,
+#pause-btn {
+  position: absolute;
+  z-index: 20;
+  width: var(--btn-size);
+  height: var(--btn-size);
+  border-radius: 50%;
+  border: 2px solid var(--color-glass-border);
+  background: var(--color-glass);
+  backdrop-filter: blur(8px);
+  font-size: 1.4rem;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+}
+
+#mute-btn {
+  top: 20px;
+  right: 20px;
+}
+
+#pause-btn {
+  top: 20px;
+  right: 80px;
+}
+
+#mute-btn:hover,
+#pause-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: scale(1.1);
+}
+
+#mute-btn:active,
+#pause-btn:active {
+  transform: scale(0.93);
+}
+
+/* ============================================================
+   Responsive Adjustments
+   ============================================================ */
+@media (max-width: 768px) {
+  :root {
+    --pip-size: 120px;
+    --btn-size: 40px;
+  }
+
+  .camera-content {
+    padding: 32px 28px;
+    margin: 0 16px;
+  }
+
+  .camera-content h1 {
+    font-size: 1.4rem;
+  }
+
+  #camera-btn {
+    padding: 12px 32px;
+    font-size: 1rem;
+  }
+}
