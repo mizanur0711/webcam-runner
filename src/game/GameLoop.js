@@ -99,9 +99,11 @@ export class GameLoop {
       if (this.renderer && this.stateMachine) {
         this.stateMachine.render(this.renderer.gameCtx, this.renderer.bgCtx, this.renderer.uiCtx);
 
-        // Update PiP webcam overlay
+        // Update PiP webcam overlay with skeleton detection & gesture feedback
         if (this.videoElement) {
-          this.renderer.drawPiP(this.videoElement);
+          const calibration = this.stateMachine.gestureDetector ? this.stateMachine.gestureDetector.calibration : null;
+          const currentGesture = this.stateMachine.gestureDetector ? this.stateMachine.gestureDetector.currentGesture : null;
+          this.renderer.drawPiP(this.videoElement, this.landmarks, calibration, currentGesture);
         }
       }
     } catch (loopError) {

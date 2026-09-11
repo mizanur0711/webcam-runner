@@ -382,7 +382,8 @@ export class GameStateMachine {
         uiCtx,
         Math.floor(this.sys.scoreManager.currentScore),
         this.sys.scoreManager.highScore,
-        this.player.tier
+        this.player.tier,
+        this.gestureDetector ? this.gestureDetector.currentGesture : null
       );
     }
   }

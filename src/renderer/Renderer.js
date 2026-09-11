@@ -66,16 +66,141 @@ export class Renderer {
         };
     }
 
-    drawPiP(videoElement) {
+    drawPiP(videoElement, landmarks, calibration, currentGesture) {
         if (!this.pipCtx || !videoElement || videoElement.readyState < 2) return;
+        const w = this.pipCanvas.width;
+        const h = this.pipCanvas.height;
+
         try {
             this.pipCtx.save();
-            this.pipCtx.clearRect(0, 0, this.pipCanvas.width, this.pipCanvas.height);
+            this.pipCtx.clearRect(0, 0, w, h);
+            
+            // Draw mirrored video
             this.pipCtx.scale(-1, 1);
-            this.pipCtx.drawImage(videoElement, -this.pipCanvas.width, 0, this.pipCanvas.width, this.pipCanvas.height);
+            this.pipCtx.drawImage(videoElement, -w, 0, w, h);
             this.pipCtx.restore();
+
+            // Draw visible detection mechanism overlay (skeleton, baselines, gesture badge)
+            this.drawDetectionOverlay(this.pipCtx, w, h, landmarks, calibration, currentGesture);
         } catch (e) {
             // Ignore video draw errors during stream changes
         }
+    }
+
+    drawDetectionOverlay(ctx, w, h, landmarks, calibration, currentGesture) {
+        ctx.save();
+
+        // 1. Draw calibration baseline guides if available
+        if (calibration) {
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 3]);
+
+            // Shoulder baseline Y
+            if (calibration.baselineShoulderY !== undefined) {
+                const sy = calibration.baselineShoulderY * h;
+                ctx.strokeStyle = 'rgba(46, 204, 113, 0.7)';
+                ctx.beginPath();
+                ctx.moveTo(0, sy);
+                ctx.lineTo(w, sy);
+                ctx.stroke();
+            }
+
+            // Hip baseline Y
+            if (calibration.baselineHipY !== undefined) {
+                const hy = calibration.baselineHipY * h;
+                ctx.strokeStyle = 'rgba(46, 204, 113, 0.7)';
+                ctx.beginPath();
+                ctx.moveTo(0, hy);
+                ctx.lineTo(w, hy);
+                ctx.stroke();
+            }
+
+            // Center baseline X
+            if (calibration.baselineCenterX !== undefined) {
+                const cx = (1 - calibration.baselineCenterX) * w;
+                ctx.strokeStyle = 'rgba(52, 152, 219, 0.7)';
+                ctx.beginPath();
+                ctx.moveTo(cx, 0);
+                ctx.lineTo(cx, h);
+                ctx.stroke();
+            }
+
+            ctx.setLineDash([]);
+        }
+
+        // 2. Draw pose skeleton if landmarks present
+        if (landmarks && landmarks.length > 0) {
+            const getPt = (idx) => {
+                const lm = landmarks[idx];
+                if (!lm || (lm.visibility !== undefined && lm.visibility < 0.25)) return null;
+                return { x: (1 - lm.x) * w, y: lm.y * h };
+            };
+
+            const connections = [
+                [0, 11], [0, 12],   // Nose to shoulders
+                [11, 12],           // Shoulder line
+                [11, 23], [12, 24], // Torso sides
+                [23, 24],           // Hip line
+                [11, 13], [13, 15], // Left arm
+                [12, 14], [14, 16], // Right arm
+                [23, 25], [25, 27], // Left leg
+                [24, 26], [26, 28]  // Right leg
+            ];
+
+            // Draw skeleton lines
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#00FFCC';
+            ctx.shadowColor = '#00FFCC';
+            ctx.shadowBlur = 4;
+
+            connections.forEach(([i, j]) => {
+                const p1 = getPt(i);
+                const p2 = getPt(j);
+                if (p1 && p2) {
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p2.x, p2.y);
+                    ctx.stroke();
+                }
+            });
+
+            // Draw keypoint dots
+            const keyJoints = [0, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28];
+            keyJoints.forEach(idx => {
+                const pt = getPt(idx);
+                if (pt) {
+                    ctx.fillStyle = (idx === 0) ? '#FFD700' : '#00FFCC';
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, (idx === 0) ? 4 : 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+
+            ctx.shadowBlur = 0;
+        }
+
+        // 3. Draw active gesture badge
+        if (currentGesture) {
+            const gestureMap = {
+                'JUMP': { text: '⬆️ JUMP!', color: '#2ECC71' },
+                'DUCK': { text: '⬇️ DUCK!', color: '#E67E22' },
+                'SLIDE_LEFT': { text: '⬅️ LEFT!', color: '#3498DB' },
+                'SLIDE_RIGHT': { text: '➡️ RIGHT!', color: '#3498DB' }
+            };
+            const gInfo = gestureMap[currentGesture];
+            if (gInfo) {
+                ctx.fillStyle = gInfo.color;
+                ctx.beginPath();
+                ctx.roundRect(w / 2 - 42, 6, 84, 22, 11);
+                ctx.fill();
+
+                ctx.font = 'bold 11px Fredoka, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillText(gInfo.text, w / 2, 21);
+            }
+        }
+
+        ctx.restore();
     }
 }

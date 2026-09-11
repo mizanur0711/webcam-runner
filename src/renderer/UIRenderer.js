@@ -7,7 +7,7 @@ export class UIRenderer {
         ctx.clearRect(0, 0, this.renderer.width, this.renderer.height);
     }
 
-    renderHUD(ctx, score, highScore, tier) {
+    renderHUD(ctx, score, highScore, tier, currentGesture) {
         this.clear(ctx);
         const w = this.renderer.width;
         
@@ -32,6 +32,27 @@ export class UIRenderer {
         ctx.fillStyle = '#FFFFFF';
         ctx.font = 'bold 28px Fredoka, sans-serif';
         ctx.fillText(`Tier: ${tier}`, 20, 50);
+
+        // Visual gesture feedback popup on main canvas
+        if (currentGesture) {
+            const gestureMap = {
+                'JUMP': { text: 'JUMP! ⬆️', color: '#2ECC71' },
+                'DUCK': { text: 'DUCK! ⬇️', color: '#E67E22' },
+                'SLIDE_LEFT': { text: 'LEFT! ⬅️', color: '#3498DB' },
+                'SLIDE_RIGHT': { text: 'RIGHT! ➡️', color: '#3498DB' }
+            };
+            const info = gestureMap[currentGesture];
+            if (info) {
+                ctx.save();
+                ctx.font = 'bold 36px Fredoka, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = info.color;
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+                ctx.shadowBlur = 10;
+                ctx.fillText(info.text, w / 2, 140);
+                ctx.restore();
+            }
+        }
     }
 
     renderIdle(ctx) {
