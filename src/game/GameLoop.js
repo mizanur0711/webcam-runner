@@ -70,40 +70,44 @@ export class GameLoop {
       return;
     }
 
-    // Delta time in seconds, capped to prevent massive jumps on lag
-    let dt = (timestamp - this.lastTime) / 1000;
-    this.lastTime = timestamp;
-    if (dt > 0.1) dt = 0.1;
-    if (dt <= 0) dt = 1 / 60;
+    try {
+      // Delta time in seconds, capped to prevent massive jumps on lag
+      let dt = (timestamp - this.lastTime) / 1000;
+      this.lastTime = timestamp;
+      if (dt > 0.1) dt = 0.1;
+      if (dt <= 0) dt = 1 / 60;
 
-    // ----- Pose inference at ~15fps (every ~66ms) -----
-    if (timestamp - this.lastPoseTime > 66 && this.poseDetector) {
-      this.lastPoseTime = timestamp;
-      if (this.videoElement && this.videoElement.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-        try {
-          const result = this.poseDetector.detect(this.videoElement, timestamp);
-          // Extract raw landmarks array, or null if no pose detected
-          this.landmarks = result ? result.landmarks : null;
-        } catch (e) {
-          // Silently handle inference errors (e.g., timestamp issues)
-          console.warn('Pose detection error:', e);
+      // ----- Pose inference at ~15fps (every ~66ms) -----
+      if (timestamp - this.lastPoseTime > 66 && this.poseDetector) {
+        this.lastPoseTime = timestamp;
+        if (this.videoElement && this.videoElement.readyState >= 2) {
+          try {
+            const result = this.poseDetector.detect(this.videoElement, timestamp);
+            this.landmarks = result ? result.landmarks : null;
+          } catch (e) {
+            console.warn('Pose detection error:', e);
+          }
         }
       }
-    }
 
-    // ----- Game logic update -----
-    this.stateMachine.update(dt, this.landmarks);
-
-    // ----- Render -----
-    if (this.renderer) {
-      this.stateMachine.render(this.renderer.gameCtx, this.renderer.bgCtx, this.renderer.uiCtx);
-
-      // Update PiP webcam overlay
-      if (this.videoElement) {
-        this.renderer.drawPiP(this.videoElement);
+      // ----- Game logic update -----
+      if (this.stateMachine) {
+        this.stateMachine.update(dt, this.landmarks);
       }
-    }
 
-    this.rafId = requestAnimationFrame(this._boundLoop);
+      // ----- Render -----
+      if (this.renderer && this.stateMachine) {
+        this.stateMachine.render(this.renderer.gameCtx, this.renderer.bgCtx, this.renderer.uiCtx);
+
+        // Update PiP webcam overlay
+        if (this.videoElement) {
+          this.renderer.drawPiP(this.videoElement);
+        }
+      }
+    } catch (loopError) {
+      console.error('Error inside GameLoop:', loopError);
+    } finally {
+      this.rafId = requestAnimationFrame(this._boundLoop);
+    }
   }
 }

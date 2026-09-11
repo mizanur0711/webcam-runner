@@ -67,10 +67,15 @@ export class Renderer {
     }
 
     drawPiP(videoElement) {
-        if (!this.pipCtx || !videoElement) return;
-        this.pipCtx.save();
-        this.pipCtx.scale(-1, 1);
-        this.pipCtx.drawImage(videoElement, -this.pipCanvas.width, 0, this.pipCanvas.width, this.pipCanvas.height);
-        this.pipCtx.restore();
+        if (!this.pipCtx || !videoElement || videoElement.readyState < 2) return;
+        try {
+            this.pipCtx.save();
+            this.pipCtx.clearRect(0, 0, this.pipCanvas.width, this.pipCanvas.height);
+            this.pipCtx.scale(-1, 1);
+            this.pipCtx.drawImage(videoElement, -this.pipCanvas.width, 0, this.pipCanvas.width, this.pipCanvas.height);
+            this.pipCtx.restore();
+        } catch (e) {
+            // Ignore video draw errors during stream changes
+        }
     }
 }

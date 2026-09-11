@@ -14,13 +14,55 @@ class PoseDetector {
    */
   async init() {
     try {
-      const vision = await FilesetResolver.forVisionTasks(
+      this.vision = await FilesetResolver.forVisionTasks(
         "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
       );
-      this.poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
+      try {
+        this.poseLandmarker = await PoseLandmarker.createFromOptions(this.vision, {
+          baseOptions: {
+            modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+            delegate: "GPU"
+          },
+          runningMode: "VIDEO",
+          numPoses: 1,
+          minPoseDetectionConfidence: 0.5,
+          minPosePresenceConfidence: 0.5,
+          minTrackingConfidence: 0.5,
+        });
+      } catch (gpuError) {
+        console.warn("GPU delegate unavailable, falling back to CPU delegate:", gpuError);
+        this.useCPU = true;
+        this.poseLandmarker = await PoseLandmarker.createFromOptions(this.vision, {
+          baseOptions: {
+            modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+            delegate: "CPU"
+          },
+          runningMode: "VIDEO",
+          numPoses: 1,
+          minPoseDetectionConfidence: 0.5,
+          minPosePresenceConfidence: 0.5,
+          minTrackingConfidence: 0.5,
+        });
+      }
+      this.isInitialized = true;
+    } catch (error) {
+      console.error("Failed to load PoseLandmarker model:", error);
+      throw error;
+    }
+  }
+
+  async switchToCPU() {
+    if (this.useCPU || !this.vision) return;
+    console.warn("Switching MediaPipe PoseLandmarker to CPU mode due to runtime error");
+    this.useCPU = true;
+    try {
+      if (this.poseLandmarker) {
+        try { this.poseLandmarker.close(); } catch(e) {}
+      }
+      this.poseLandmarker = await PoseLandmarker.createFromOptions(this.vision, {
         baseOptions: {
           modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
-          delegate: "GPU"
+          delegate: "CPU"
         },
         runningMode: "VIDEO",
         numPoses: 1,
@@ -28,10 +70,8 @@ class PoseDetector {
         minPosePresenceConfidence: 0.5,
         minTrackingConfidence: 0.5,
       });
-      this.isInitialized = true;
-    } catch (error) {
-      console.error("Failed to load PoseLandmarker model:", error);
-      throw error;
+    } catch (e) {
+      console.error("Failed to fallback to CPU mode:", e);
     }
   }
 
@@ -77,13 +117,27 @@ class PoseDetector {
    */
   detect(videoElement, timestamp) {
     if (!this.isInitialized || !this.poseLandmarker) return null;
+    if (!videoElement || videoElement.readyState < 2) return null;
     
-    const result = this.poseLandmarker.detectForVideo(videoElement, timestamp);
-    if (result.landmarks && result.landmarks.length > 0) {
-        const landmarks = result.landmarks[0]; // numPoses is 1
-        // Calculate average visibility as a pseudo-confidence score
+    // Ensure monotonically increasing integer timestamp in ms for MediaPipe
+    let ts = Math.floor(timestamp || performance.now());
+    if (this.lastTimestamp !== undefined && ts <= this.lastTimestamp) {
+      ts = this.lastTimestamp + 1;
+    }
+    this.lastTimestamp = ts;
+
+    try {
+      const result = this.poseLandmarker.detectForVideo(videoElement, ts);
+      if (result && result.landmarks && result.landmarks.length > 0) {
+        const landmarks = result.landmarks[0];
         const confidence = landmarks.reduce((sum, lm) => sum + (lm.visibility || 0), 0) / landmarks.length;
         return { landmarks, confidence };
+      }
+    } catch (error) {
+      console.warn("Pose detection runtime error:", error);
+      if (!this.useCPU) {
+        this.switchToCPU();
+      }
     }
     return null;
   }
@@ -93,7 +147,7 @@ class PoseDetector {
    */
   close() {
     if (this.poseLandmarker) {
-      this.poseLandmarker.close();
+      try { this.poseLandmarker.close(); } catch(e) {}
       this.poseLandmarker = null;
     }
     this.isInitialized = false;
