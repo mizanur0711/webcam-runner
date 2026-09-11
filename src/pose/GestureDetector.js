@@ -84,8 +84,8 @@ export class GestureDetector {
 
     let newGesture = null;
 
-    // Jumping = lower Y value (Y increases downward in normalized coords)
-    if (avgHipY < baselineHipY - this.yThresh) {
+    // Jumping = upper body (hips or shoulders/chest) moves upward
+    if (avgHipY < baselineHipY - this.yThresh || avgShoulderY < baselineShoulderY - this.yThresh) {
       newGesture = 'JUMP';
     } 
     // Ducking = higher Y value (shoulders drop)

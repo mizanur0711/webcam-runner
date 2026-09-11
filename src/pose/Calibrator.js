@@ -55,22 +55,14 @@ export class Calibrator {
     const leftHip = landmarks[23];
     const rightHip = landmarks[24];
     const nose = landmarks[0];
-    const leftAnkle = landmarks[27];
-    const rightAnkle = landmarks[28];
-
     const shoulderY = (leftShoulder.y + rightShoulder.y) / 2;
     const hipY = (leftHip.y + rightHip.y) / 2;
     const shoulderX = (leftShoulder.x + rightShoulder.x) / 2;
     const hipX = (leftHip.x + rightHip.x) / 2;
     const centerX = (shoulderX + hipX) / 2;
 
-    let bboxHeight = 0;
-    if (leftAnkle && rightAnkle && leftAnkle.visibility > 0.5 && rightAnkle.visibility > 0.5) {
-      const ankleY = (leftAnkle.y + rightAnkle.y) / 2;
-      bboxHeight = ankleY - nose.y;
-    } else {
-      bboxHeight = hipY - nose.y;
-    }
+    // Upper body height (nose to hips)
+    const bboxHeight = hipY - nose.y;
 
     this.samples.push({ shoulderY, hipY, centerX, bboxHeight });
 
@@ -123,8 +115,8 @@ export class Calibrator {
 
     const torsoHeight = Math.max(avgHipY - avgShoulderY, 0.15);
     let heightTier = 'Medium';
-    if (avgBboxHeight < 0.45) heightTier = 'Small';
-    else if (avgBboxHeight > 0.65) heightTier = 'Tall';
+    if (avgBboxHeight < 0.25) heightTier = 'Small';
+    else if (avgBboxHeight > 0.40) heightTier = 'Tall';
 
     this.result = {
       baselineShoulderY: avgShoulderY,
