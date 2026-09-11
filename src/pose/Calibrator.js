@@ -21,7 +21,7 @@ export class Calibrator {
     this.retries = 0;
     this.samples = [];
     this.calibrationTime = 0;
-    this.targetDuration = 2500; // ~2.5 seconds
+    this.targetDuration = 1000; // 1 second fast capture
   }
 
   /**
@@ -116,12 +116,12 @@ export class Calibrator {
     const varCenterX = this.getVariance(this.samples.map(s => s.centerX), avgCenterX);
 
     // Detect excessive movement (variance in positions)
-    if (varShoulderY > 0.01 || varCenterX > 0.01) {
+    if (varShoulderY > 0.08 || varCenterX > 0.08) {
       this.retryCalibration();
       return;
     }
 
-    const torsoHeight = avgHipY - avgShoulderY;
+    const torsoHeight = Math.max(avgHipY - avgShoulderY, 0.15);
     let heightTier = 'Medium';
     if (avgBboxHeight < 0.45) heightTier = 'Small';
     else if (avgBboxHeight > 0.65) heightTier = 'Tall';

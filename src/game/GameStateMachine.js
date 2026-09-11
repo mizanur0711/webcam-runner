@@ -117,7 +117,7 @@ export class GameStateMachine {
   // ================================================================
   enter_DETECTED() {
     if (this.sys.audioManager) this.sys.audioManager.playDetected();
-    this.stateData.timer = 1.5;
+    this.stateData.timer = 0.5;
   }
 
   update_DETECTED(dt, landmarks) {
@@ -203,7 +203,7 @@ export class GameStateMachine {
   // ================================================================
   enter_COUNTDOWN() {
     this.stateData.counter = 3;
-    this.stateData.timer = 1.0;
+    this.stateData.timer = 0.5;
     this.resetPlayer();
     if (this.sys.audioManager) this.sys.audioManager.playCountdownBeep(3);
   }
@@ -214,7 +214,7 @@ export class GameStateMachine {
     if (this.stateData.timer <= 0) {
       this.stateData.counter--;
       if (this.stateData.counter > 0) {
-        this.stateData.timer = 1.0;
+        this.stateData.timer = 0.5;
         if (this.sys.audioManager) this.sys.audioManager.playCountdownBeep(this.stateData.counter);
       } else {
         if (this.sys.audioManager) this.sys.audioManager.playCountdownBeep(0);
@@ -426,7 +426,7 @@ export class GameStateMachine {
         }, 300);
       }
     }
-    this.stateData.gameOverTimer = 5;
+    this.stateData.gameOverTimer = 2.5;
   }
 
   update_GAME_OVER(dt, landmarks) {
@@ -437,7 +437,11 @@ export class GameStateMachine {
     }
     this.stateData.gameOverTimer -= dt;
     if (this.stateData.gameOverTimer <= 0) {
-      this.transition('IDLE');
+      if (this.sys.presenceDetector.isPresent) {
+        this.transition('COUNTDOWN');
+      } else {
+        this.transition('IDLE');
+      }
     }
   }
 
