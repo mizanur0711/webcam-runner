@@ -41,12 +41,13 @@ export class CharacterRenderer {
         const animFrame = character.animFrame || 0;
         const legOffset = Math.sin(animFrame * Math.PI * 2) * 15;
 
-        if (character.tier === 'CUB') {
+        const tier = (character.tier || '').toUpperCase();
+        if (tier === 'CUB' || tier === 'SMALL') {
             this.drawCub(ctx, legOffset, character.state);
-        } else if (character.tier === 'SCOUT') {
-            this.drawScout(ctx, legOffset, character.state);
-        } else if (character.tier === 'RANGER') {
+        } else if (tier === 'RANGER' || tier === 'TALL') {
             this.drawRanger(ctx, legOffset, character.state);
+        } else {
+            this.drawScout(ctx, legOffset, character.state);
         }
 
         ctx.restore();
