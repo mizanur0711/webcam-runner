@@ -30,7 +30,7 @@ export class GestureDetector {
 
     // Vertical thresholds tailored to torso height for kids
     const torsoH = Math.max(this.calibration.torsoHeight || 0.3, 0.15);
-    this.jumpThresh = Math.max(0.035, 0.11 * torsoH);
+    this.jumpThresh = Math.max(0.065, 0.18 * torsoH); // Higher threshold to eliminate auto-jumping
     this.duckThresh = Math.max(0.075, 0.20 * torsoH); // Higher threshold to eliminate accidental ducks
   }
 
@@ -124,22 +124,36 @@ export class GestureDetector {
 
     const verticalDelta = baseUpperY - currentUpperY; // Positive = UP (jump), Negative = DOWN (duck)
 
-    // Robust DUCK filtering checks
+    // Robust Filtering Checks
     const shoulderTilt = Math.abs(leftShoulder.y - rightShoulder.y);
     const isLeaning = shoulderTilt > 0.035; // Player is tilting/leaning sideways
     const isMovingLaterally = Math.abs(dx) > this.xThresh * 0.5;
 
+    // JUMP checks: Both shoulders, head, and hips rise
+    const bothShouldersRose = (leftShoulder.y < baselineShoulderY - this.jumpThresh * 0.5) &&
+                              (rightShoulder.y < baselineShoulderY - this.jumpThresh * 0.5);
+    const noseRose = nose ? (nose.y < baseNoseY - this.jumpThresh * 0.5) : true;
+    const hipRose = (leftHip && rightHip) ? (avgHipY < baselineHipY - this.jumpThresh * 0.3) : true;
+    const effJumpThresh = isMovingLaterally ? this.jumpThresh * 1.4 : this.jumpThresh;
+
+    // DUCK checks: Both shoulders and head drop
     const bothShouldersDropped = (leftShoulder.y > baselineShoulderY + this.duckThresh * 0.6) &&
                                  (rightShoulder.y > baselineShoulderY + this.duckThresh * 0.6);
     const noseDropped = nose ? (nose.y > baseNoseY + this.duckThresh * 0.6) : true;
-
     const effDuckThresh = isMovingLaterally ? this.duckThresh * 1.5 : this.duckThresh;
 
     if (!triggeredGesture) {
-      // JUMP: Upper body moves upward
-      if (this.jumpCooldown <= 0 && verticalDelta > this.jumpThresh) {
+      // JUMP: Both shoulders, head, and hips rise significantly, body is upright (not tilted)
+      if (
+        this.jumpCooldown <= 0 &&
+        !isLeaning &&
+        bothShouldersRose &&
+        noseRose &&
+        hipRose &&
+        verticalDelta > effJumpThresh
+      ) {
         triggeredGesture = 'JUMP';
-        this.jumpCooldown = 500;    // 500ms jump cooldown
+        this.jumpCooldown = 550;    // 550ms jump cooldown
         this.landingLockout = 700;  // 700ms landing lockout to prevent crouching crouch-duck on landing
       }
       // DUCK: Both shoulders and head drop significantly, body is upright (not tilted)
@@ -157,8 +171,8 @@ export class GestureDetector {
     }
 
     // ----- 3. ADAPTIVE BASELINE SMOOTHING -----
-    // When standing steadily in center zone without active gestures, slowly adapt baseline
-    if (this.currentZone === 'CENTER' && !triggeredGesture && this.jumpCooldown <= 0 && this.duckCooldown <= 0) {
+    // Only adapt baseline when player is standing steadily in center zone NEAR baseline (not jumping or crouching)
+    if (this.currentZone === 'CENTER' && !triggeredGesture && this.jumpCooldown <= 0 && this.duckCooldown <= 0 && Math.abs(verticalDelta) < 0.035) {
       this.calibration.baselineShoulderY += (avgShoulderY - this.calibration.baselineShoulderY) * 0.002;
       this.calibration.baselineCenterX += (centerX - this.calibration.baselineCenterX) * 0.002;
       if (nose) {
