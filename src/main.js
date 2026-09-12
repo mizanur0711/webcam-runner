@@ -47,11 +47,15 @@ const pauseBtn = document.getElementById('pause-btn');
 // Initialize Systems
 // ============================================================
 
+// Global instances
+const difficultyManager = new DifficultyManager();
+
 /** @type {GameLoop|null} */
 let gameLoop = null;
 
 /** @type {GameStateMachine|null} */
 let stateMachine = null;
+
 
 /**
  * Update loading status text
@@ -111,11 +115,11 @@ async function init() {
     const obstacleManager = new ObstacleManager();
     const collisionDetector = new CollisionDetector();
     const scoreManager = new ScoreManager();
-    const difficultyManager = new DifficultyManager();
 
     // Init managers
     scoreManager.init();
     obstacleManager.init(difficultyManager);
+
 
     // 4. Load MediaPipe model
     setStatus('Loading pose detection model...');
