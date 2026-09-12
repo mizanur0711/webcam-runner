@@ -247,38 +247,37 @@ html, body {
   padding: 0;
 }
 
-#start-btn,
-#training-btn {
+#action-btn {
   position: absolute;
   top: 20px;
+  right: 140px;
   z-index: 20;
   height: var(--btn-size);
-  padding: 0 20px;
+  padding: 0 22px;
   border-radius: 24px;
   font-family: var(--font-primary);
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-#start-btn {
-  right: 140px;
+#action-btn.start-mode {
   border: none;
   background: linear-gradient(135deg, #2ecc71, #1abc9c);
   color: #0a0a1a;
   box-shadow: 0 4px 18px rgba(46, 204, 113, 0.45);
 }
 
-#training-btn {
-  right: 275px;
+#action-btn.practice-mode {
   border: 2px solid var(--color-glass-border);
-  background: var(--color-glass);
+  background: linear-gradient(135deg, rgba(255, 204, 0, 0.25), rgba(78, 205, 196, 0.25));
   backdrop-filter: blur(8px);
   color: #FFFFFF;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
 }
 
 #mute-btn {
@@ -291,19 +290,18 @@ html, body {
   right: 80px;
 }
 
-#start-btn:hover,
+#action-btn:hover,
 #mute-btn:hover,
-#pause-btn:hover,
-#training-btn:hover {
+#pause-btn:hover {
   transform: scale(1.06);
 }
 
-#start-btn:active,
+#action-btn:active,
 #mute-btn:active,
-#pause-btn:active,
-#training-btn:active {
+#pause-btn:active {
   transform: scale(0.95);
 }
+
 
 
 /* ============================================================

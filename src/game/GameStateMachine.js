@@ -47,6 +47,7 @@ export class GameStateMachine {
     };
 
     this.theme = 'Forest';
+    this.onStateChange = null;
   }
 
   /**
@@ -62,7 +63,12 @@ export class GameStateMachine {
 
     const enterMethod = `enter_${newState}`;
     if (this[enterMethod]) this[enterMethod]();
+
+    if (typeof this.onStateChange === 'function') {
+      this.onStateChange(newState);
+    }
   }
+
 
   /**
    * @param {number} dt - Delta time in seconds

@@ -175,14 +175,16 @@ async function init() {
           videoElement: webcamVideo
         });
 
+        stateMachine.onStateChange = (state) => {
+          updateActionButtonUI(state);
+        };
+
         // Enter initial IDLE state
         stateMachine.transition('IDLE');
 
         // Show control buttons
         if (pauseBtn) pauseBtn.style.display = 'flex';
-        if (startBtn) startBtn.style.display = 'flex';
-        if (trainingBtn) trainingBtn.style.display = 'flex';
-
+        if (actionBtn) actionBtn.style.display = 'flex';
 
         hideLoading();
         gameLoop.start();
@@ -227,6 +229,20 @@ function handleCameraError(error, renderer, uiRenderer) {
 // UI Button Handlers
 // ============================================================
 
+// Single Interchangeable Action Button (Start Game <-> Practice)
+const actionBtn = document.getElementById('action-btn');
+
+function updateActionButtonUI(state) {
+  if (!actionBtn) return;
+  if (state === 'TRAINING' || state === 'IDLE' || state === 'GAME_OVER') {
+    actionBtn.textContent = '🚀 Start Game';
+    actionBtn.className = 'start-mode';
+  } else {
+    actionBtn.textContent = '🎓 Practice';
+    actionBtn.className = 'practice-mode';
+  }
+}
+
 // Difficulty buttons (Easy / Medium / Hard)
 const diffButtons = document.querySelectorAll('.diff-btn');
 
@@ -262,20 +278,16 @@ if (muteBtn) {
   });
 }
 
-const startBtn = document.getElementById('start-btn');
-const trainingBtn = document.getElementById('training-btn');
-
-// Show control buttons when ready
-if (pauseBtn) pauseBtn.style.display = 'flex';
-if (startBtn) startBtn.style.display = 'flex';
-if (trainingBtn) trainingBtn.style.display = 'flex';
-
-// Start Game button (starts run directly)
-if (startBtn) {
-  startBtn.addEventListener('click', () => {
+// Action Button click handler
+if (actionBtn) {
+  actionBtn.addEventListener('click', () => {
     audioManager.init();
     if (stateMachine) {
-      stateMachine.transition('COUNTDOWN');
+      if (stateMachine.currentState === 'TRAINING' || stateMachine.currentState === 'IDLE' || stateMachine.currentState === 'GAME_OVER') {
+        stateMachine.transition('COUNTDOWN');
+      } else {
+        stateMachine.transition('TRAINING');
+      }
     }
   });
 }
@@ -295,19 +307,6 @@ if (pauseBtn) {
   });
 }
 
-// Practice Lobby button
-if (trainingBtn) {
-  trainingBtn.addEventListener('click', () => {
-    audioManager.init();
-    if (stateMachine) {
-      if (stateMachine.currentState === 'TRAINING') {
-        stateMachine.transition('COUNTDOWN');
-      } else {
-        stateMachine.transition('TRAINING');
-      }
-    }
-  });
-}
 
 
 
