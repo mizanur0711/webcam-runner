@@ -247,26 +247,38 @@ html, body {
   padding: 0;
 }
 
+#start-btn,
 #training-btn {
   position: absolute;
   top: 20px;
-  right: 140px;
   z-index: 20;
   height: var(--btn-size);
-  padding: 0 18px;
+  padding: 0 20px;
   border-radius: 24px;
-  border: 2px solid var(--color-glass-border);
-  background: linear-gradient(135deg, rgba(255, 204, 0, 0.25), rgba(78, 205, 196, 0.25));
-  backdrop-filter: blur(8px);
   font-family: var(--font-primary);
   font-size: 1rem;
-  font-weight: 600;
-  color: #FFFFFF;
+  font-weight: 700;
   cursor: pointer;
   transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+#start-btn {
+  right: 140px;
+  border: none;
+  background: linear-gradient(135deg, #2ecc71, #1abc9c);
+  color: #0a0a1a;
+  box-shadow: 0 4px 18px rgba(46, 204, 113, 0.45);
+}
+
+#training-btn {
+  right: 275px;
+  border: 2px solid var(--color-glass-border);
+  background: var(--color-glass);
+  backdrop-filter: blur(8px);
+  color: #FFFFFF;
 }
 
 #mute-btn {
@@ -279,18 +291,20 @@ html, body {
   right: 80px;
 }
 
+#start-btn:hover,
 #mute-btn:hover,
 #pause-btn:hover,
 #training-btn:hover {
-  background: rgba(255, 255, 255, 0.25);
   transform: scale(1.06);
 }
 
+#start-btn:active,
 #mute-btn:active,
 #pause-btn:active,
 #training-btn:active {
   transform: scale(0.95);
 }
+
 
 /* ============================================================
    Difficulty Selector (Easy / Medium / Hard)

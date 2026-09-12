@@ -180,7 +180,9 @@ async function init() {
 
         // Show control buttons
         if (pauseBtn) pauseBtn.style.display = 'flex';
+        if (startBtn) startBtn.style.display = 'flex';
         if (trainingBtn) trainingBtn.style.display = 'flex';
+
 
         hideLoading();
         gameLoop.start();
@@ -260,11 +262,23 @@ if (muteBtn) {
   });
 }
 
+const startBtn = document.getElementById('start-btn');
 const trainingBtn = document.getElementById('training-btn');
 
-// Show pause and training buttons
+// Show control buttons when ready
 if (pauseBtn) pauseBtn.style.display = 'flex';
+if (startBtn) startBtn.style.display = 'flex';
 if (trainingBtn) trainingBtn.style.display = 'flex';
+
+// Start Game button (starts run directly)
+if (startBtn) {
+  startBtn.addEventListener('click', () => {
+    audioManager.init();
+    if (stateMachine) {
+      stateMachine.transition('COUNTDOWN');
+    }
+  });
+}
 
 // Pause button (manual pause for parents)
 if (pauseBtn) {
@@ -281,20 +295,20 @@ if (pauseBtn) {
   });
 }
 
-// Training Lobby button
+// Practice Lobby button
 if (trainingBtn) {
   trainingBtn.addEventListener('click', () => {
+    audioManager.init();
     if (stateMachine) {
       if (stateMachine.currentState === 'TRAINING') {
         stateMachine.transition('COUNTDOWN');
-        trainingBtn.textContent = '🎓 Practice';
       } else {
         stateMachine.transition('TRAINING');
-        trainingBtn.textContent = '🚀 Start Run';
       }
     }
   });
 }
+
 
 
 // ============================================================
