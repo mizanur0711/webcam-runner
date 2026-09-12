@@ -453,7 +453,8 @@ export class GameStateMachine {
     this.sys.obstacleManager.update(dt, speed);
 
     // Score
-    this.sys.scoreManager.update(dt, speed);
+    const scoreMult = this.sys.difficultyManager.getScoreMultiplier();
+    this.sys.scoreManager.update(dt, speed, scoreMult);
 
     // Scroll
     this.stateData.scrollOffset += speed * 60 * dt;
@@ -500,10 +501,12 @@ export class GameStateMachine {
         Math.floor(this.sys.scoreManager.currentScore),
         this.sys.scoreManager.highScore,
         this.player.tier,
-        this.gestureDetector ? this.gestureDetector.currentGesture : null
+        this.gestureDetector ? this.gestureDetector.currentGesture : null,
+        this.sys.difficultyManager ? this.sys.difficultyManager.getBadge() : null
       );
     }
   }
+
 
   // ================================================================
   // PAUSED

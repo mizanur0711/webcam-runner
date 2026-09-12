@@ -7,7 +7,7 @@ export class UIRenderer {
         ctx.clearRect(0, 0, this.renderer.width, this.renderer.height);
     }
 
-    renderHUD(ctx, score, highScore, tier, currentGesture) {
+    renderHUD(ctx, score, highScore, tier, currentGesture, difficultyBadge) {
         this.clear(ctx);
         const w = this.renderer.width;
         
@@ -30,8 +30,15 @@ export class UIRenderer {
 
         ctx.textAlign = 'left';
         ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 28px Fredoka, sans-serif';
-        ctx.fillText(`Tier: ${tier}`, 20, 50);
+        ctx.font = 'bold 24px Fredoka, sans-serif';
+        ctx.fillText(`Tier: ${tier}`, 20, 42);
+
+        if (difficultyBadge) {
+            ctx.font = 'bold 20px Fredoka, sans-serif';
+            ctx.fillStyle = '#FFD700';
+            ctx.fillText(difficultyBadge, 20, 72);
+        }
+
 
         // Visual gesture feedback popup on main canvas
         if (currentGesture) {

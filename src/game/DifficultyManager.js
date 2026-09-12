@@ -1,30 +1,66 @@
 /**
- * Manages game difficulty based on player tier and run duration.
+ * Manages game difficulty based on explicit level selection (EASY, MEDIUM, HARD)
+ * and player run duration.
  */
 export class DifficultyManager {
     constructor() {
-        this.TIERS = {
-            'SMALL': { baseSpeed: 3, obstacleIntervalMin: 2.5, obstacleIntervalMax: 4.0, speedRampRate: 0.03, maxSpeedMultiplier: 1.5 },
-            'MEDIUM': { baseSpeed: 5, obstacleIntervalMin: 1.5, obstacleIntervalMax: 3.0, speedRampRate: 0.04, maxSpeedMultiplier: 1.8 },
-            'TALL': { baseSpeed: 7, obstacleIntervalMin: 1.0, obstacleIntervalMax: 2.0, speedRampRate: 0.05, maxSpeedMultiplier: 2.0 }
+        this.LEVELS = {
+            'EASY': {
+                name: 'EASY',
+                label: '🌱 Easy',
+                baseSpeed: 3.5,
+                obstacleIntervalMin: 2.6,
+                obstacleIntervalMax: 3.8,
+                speedRampRate: 0.015,
+                maxSpeedMultiplier: 1.4,
+                scoreMultiplier: 1.0
+            },
+            'MEDIUM': {
+                name: 'MEDIUM',
+                label: '⚡ Medium',
+                baseSpeed: 5.0,
+                obstacleIntervalMin: 1.8,
+                obstacleIntervalMax: 2.8,
+                speedRampRate: 0.028,
+                maxSpeedMultiplier: 1.8,
+                scoreMultiplier: 1.5
+            },
+            'HARD': {
+                name: 'HARD',
+                label: '🔥 Hard',
+                baseSpeed: 7.2,
+                obstacleIntervalMin: 1.2,
+                obstacleIntervalMax: 1.9,
+                speedRampRate: 0.045,
+                maxSpeedMultiplier: 2.2,
+                scoreMultiplier: 2.0
+            }
         };
-        this.currentTier = 'MEDIUM';
-        this.config = this.TIERS[this.currentTier];
+
+        // Load persisted difficulty or default to EASY for toddler suitability
+        const savedLevel = localStorage.getItem('webcam_runner_difficulty');
+        this.currentLevel = (savedLevel && this.LEVELS[savedLevel]) ? savedLevel : 'EASY';
+        this.config = this.LEVELS[this.currentLevel];
         this.elapsed = 0;
+    }
+
+    /**
+     * Set active difficulty level (EASY, MEDIUM, HARD)
+     * @param {string} level 
+     */
+    setLevel(level) {
+        const lvlUpper = (level || '').toUpperCase();
+        if (this.LEVELS[lvlUpper]) {
+            this.currentLevel = lvlUpper;
+            this.config = this.LEVELS[lvlUpper];
+            localStorage.setItem('webcam_runner_difficulty', lvlUpper);
+        }
     }
 
     /**
      * @param {string} tier 
      */
     init(tier) {
-        if (this.TIERS[tier]) {
-            this.currentTier = tier;
-            this.config = this.TIERS[tier];
-        } else {
-            console.warn(`Unknown tier ${tier}, defaulting to MEDIUM`);
-            this.currentTier = 'MEDIUM';
-            this.config = this.TIERS['MEDIUM'];
-        }
         this.reset();
     }
 
@@ -53,15 +89,22 @@ export class DifficultyManager {
         return randomBase / speedMultiplier;
     }
 
-    reset() {
-        this.elapsed = 0;
+    /**
+     * @returns {number}
+     */
+    getScoreMultiplier() {
+        return this.config.scoreMultiplier || 1.0;
     }
 
     /**
-     * @param {string} tier 
-     * @returns {object}
+     * @returns {string}
      */
-    getTierConfig(tier) {
-        return this.TIERS[tier] || this.TIERS['MEDIUM'];
+    getBadge() {
+        return this.config.label;
+    }
+
+    reset() {
+        this.elapsed = 0;
     }
 }
+

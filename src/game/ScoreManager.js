@@ -24,13 +24,15 @@ export class ScoreManager {
     /**
      * @param {number} dt 
      * @param {number} speed 
+     * @param {number} [multiplier=1.0]
      */
-    update(dt, speed) {
-        this.currentScore += dt * speed * 10;
+    update(dt, speed, multiplier = 1.0) {
+        this.currentScore += dt * speed * 10 * multiplier;
         if (this.currentScore > this.highScore) {
             this.isNewHighScore = true;
         }
     }
+
 
     finalizeRun() {
         const finalScore = Math.floor(this.currentScore);

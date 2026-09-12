@@ -214,6 +214,32 @@ function handleCameraError(error, renderer, uiRenderer) {
 // UI Button Handlers
 // ============================================================
 
+// Difficulty buttons (Easy / Medium / Hard)
+const diffButtons = document.querySelectorAll('.diff-btn');
+
+function syncDifficultyUI(currentLevel) {
+  diffButtons.forEach(btn => {
+    if (btn.dataset.level === currentLevel) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+}
+
+// Initial sync with loaded difficulty
+syncDifficultyUI(difficultyManager.currentLevel);
+
+diffButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    audioManager.init();
+    const level = btn.dataset.level;
+    difficultyManager.setLevel(level);
+    syncDifficultyUI(level);
+    if (audioManager) audioManager.playCountdownBeep(3);
+  });
+});
+
 // Mute button
 if (muteBtn) {
   muteBtn.addEventListener('click', () => {
@@ -225,7 +251,6 @@ if (muteBtn) {
 
 const trainingBtn = document.getElementById('training-btn');
 
-// In camera button handler initialization
 // Show pause and training buttons
 if (pauseBtn) pauseBtn.style.display = 'flex';
 if (trainingBtn) trainingBtn.style.display = 'flex';
@@ -259,6 +284,7 @@ if (trainingBtn) {
     }
   });
 }
+
 
 // ============================================================
 // Start
