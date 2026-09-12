@@ -3,7 +3,7 @@
  */
 export class CollectibleManager {
     constructor() {
-        this.POOL_SIZE = 12;
+        this.POOL_SIZE = 24;
         this.pool = [];
         for (let i = 0; i < this.POOL_SIZE; i++) {
             this.pool.push({
@@ -38,7 +38,7 @@ export class CollectibleManager {
             if (item.active) {
                 item.prevZ = item.z;
                 item.z -= moveDist;
-                item.rotation += dt * 3.5; // continuous spin animation
+                item.rotation += dt * 4.0; // dynamic spin animation
 
                 if (item.z < -100) {
                     item.active = false;
@@ -46,24 +46,20 @@ export class CollectibleManager {
             }
         }
 
-        // Spawn timer
+        // Spawn timer — rapid frequent star spawns for maximum player engagement
         this.spawnTimer -= dt;
         if (this.spawnTimer <= 0) {
             this.spawn(activeObstacles);
-            this.spawnTimer = 1.2 + Math.random() * 1.5; // Frequent star spawns for kid engagement
+            this.spawnTimer = 0.45 + Math.random() * 0.45; // Spawns stars every ~0.45 - 0.9 seconds
         }
     }
 
     /**
-     * Spawns a collectible star in a safe position or above a low hurdle
+     * Spawns a collectible star line/single in a safe position or above a low hurdle
      * @param {Array<object>} activeObstacles 
      */
     spawn(activeObstacles = []) {
-        const item = this.pool.find(i => !i.active);
-        if (!item) return;
-
         const lanes = [-1, 0, 1];
-        // Pick a random lane
         const lane = lanes[Math.floor(Math.random() * lanes.length)];
 
         // Check if there is an obstacle at spawning distance (Z ~ 1800) in this lane
@@ -72,22 +68,30 @@ export class CollectibleManager {
         let yPos = 30; // standard ground-level float height
         if (obstacleInLane) {
             if (obstacleInLane.type === 'LOW') {
-                // Place star above the LOW hurdle so jumping collects it!
-                yPos = 125;
+                // Place star sequence above the LOW hurdle so jumping collects them!
+                yPos = 130;
             } else {
                 // Skip spawning in lane occupied by HIGH or SIDE obstacle at spawning distance
                 return;
             }
         }
 
-        item.active = true;
-        item.collected = false;
-        item.lane = lane;
-        item.x = lane * 180;
-        item.y = yPos;
-        item.z = 1800;
-        item.prevZ = item.z;
-        item.rotation = Math.random() * Math.PI * 2;
+        // 50% chance to spawn a trail of 2-3 stars in a row
+        const count = Math.random() < 0.5 ? Math.floor(Math.random() * 2) + 2 : 1;
+
+        for (let k = 0; k < count; k++) {
+            const item = this.pool.find(i => !i.active);
+            if (!item) break;
+
+            item.active = true;
+            item.collected = false;
+            item.lane = lane;
+            item.x = lane * 180;
+            item.y = yPos;
+            item.z = 1800 + (k * 140); // space stars out nicely in z
+            item.prevZ = item.z;
+            item.rotation = Math.random() * Math.PI * 2;
+        }
     }
 
     /**
@@ -102,12 +106,12 @@ export class CollectibleManager {
         for (const item of this.pool) {
             if (item.active && !item.collected) {
                 // Check if player is near Z=320 (player position)
-                const inZRange = item.z <= 380 && item.z >= 240;
+                const inZRange = item.z <= 420 && item.z >= 220;
                 const inSameLane = (item.lane === player.lane);
 
                 // Y-distance check (ground vs jumping)
                 const yDist = Math.abs(item.y - playerY);
-                const inYRange = yDist < 85;
+                const inYRange = yDist < 105;
 
                 if (inZRange && inSameLane && inYRange) {
                     item.collected = true;
@@ -132,6 +136,6 @@ export class CollectibleManager {
             item.active = false;
             item.collected = false;
         }
-        this.spawnTimer = 0.8;
+        this.spawnTimer = 0.4;
     }
 }

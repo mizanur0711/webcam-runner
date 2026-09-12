@@ -483,7 +483,8 @@ export class GameStateMachine {
       this.sys.collectibleManager.update(dt, speed, this.sys.obstacleManager.getActiveObstacles());
       const starsCaught = this.sys.collectibleManager.checkPickups(this.player);
       if (starsCaught > 0) {
-        this.sys.scoreManager.addStar(starsCaught);
+        const mult = this.sys.difficultyManager ? this.sys.difficultyManager.getScoreMultiplier() : 1.0;
+        this.sys.scoreManager.addStar(starsCaught, mult);
         if (this.sys.audioManager) this.sys.audioManager.playStarPickup();
         if (this.sys.particleManager) {
           this.sys.particleManager.emitStarSparkles(this.player.visualX, this.player.y + 40, 320);

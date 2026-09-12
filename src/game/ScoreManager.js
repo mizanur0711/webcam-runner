@@ -37,10 +37,12 @@ export class ScoreManager {
     /**
      * Add collected stars and bonus score
      * @param {number} [count=1] 
+     * @param {number} [multiplier=1.0]
      */
-    addStar(count = 1) {
+    addStar(count = 1, multiplier = 1.0) {
         this.starsCollected += count;
-        this.currentScore += count * 50; // +50 bonus score points
+        const starBonus = Math.round(count * 150 * multiplier); // +150 bonus points per star (scaled by difficulty)
+        this.currentScore += starBonus;
         if (this.currentScore > this.highScore) {
             this.isNewHighScore = true;
         }
