@@ -1,6 +1,3 @@
-/**
- * Manages obstacle spawning, pooling, and movement.
- */
 export class ObstacleManager {
     constructor() {
         this.POOL_SIZE = 15;
@@ -22,6 +19,8 @@ export class ObstacleManager {
         }
         this.spawnTimer = 0;
         this.difficultyManager = null;
+        this.lastType = null;
+        this.lastLane = null;
     }
 
     /**
@@ -52,25 +51,45 @@ export class ObstacleManager {
         // Spawn logic
         this.spawnTimer -= dt;
         if (this.spawnTimer <= 0) {
-            this.spawn();
-            const interval = (this.difficultyManager && typeof this.difficultyManager.getObstacleInterval === 'function')
+            const spawnedType = this.spawn();
+            let interval = (this.difficultyManager && typeof this.difficultyManager.getObstacleInterval === 'function')
                 ? this.difficultyManager.getObstacleInterval()
-                : 2.0;
+                : 2.5;
+
+            // Extra recovery padding after JUMP (LOW) or DUCK (HIGH) obstacles so player lands cleanly!
+            if (spawnedType === 'LOW' || spawnedType === 'HIGH') {
+                interval += 0.5;
+            }
+
             this.spawnTimer = interval;
         }
     }
 
     spawn(initialZ) {
         const obs = this.pool.find(o => !o.active);
-        if (!obs) return;
+        if (!obs) return null;
 
-        const rand = Math.random();
         let type;
-        if (rand < 0.4) type = 'LOW';
-        else if (rand < 0.7) type = 'HIGH';
-        else type = 'SIDE';
+        let lane;
 
-        let lane = Math.floor(Math.random() * 3) - 1; // -1, 0, 1
+        // Try up to 5 times to pick a type and lane that does NOT repeat identical lane & type back-to-back
+        for (let attempt = 0; attempt < 5; attempt++) {
+            const rand = Math.random();
+            if (rand < 0.45) type = 'LOW';
+            else if (rand < 0.75) type = 'HIGH';
+            else type = 'SIDE';
+
+            const lanes = [-1, 0, 1];
+            lane = lanes[Math.floor(Math.random() * lanes.length)];
+
+            // Avoid repeating identical type in identical lane back-to-back
+            if (type !== this.lastType || lane !== this.lastLane) {
+                break;
+            }
+        }
+
+        this.lastType = type;
+        this.lastLane = lane;
 
         obs.active = true;
         obs.type = type;
@@ -86,6 +105,8 @@ export class ObstacleManager {
         } else if (type === 'SIDE') {
             obs.baseWidth = 80; obs.baseHeight = 140; obs.y = 0; obs.depth = 40;
         }
+
+        return type;
     }
 
     /**
@@ -99,7 +120,10 @@ export class ObstacleManager {
         for (const obs of this.pool) {
             obs.active = false;
         }
-        // First obstacle spawns quickly (0.5s)
-        this.spawnTimer = 0.5;
+        this.lastType = null;
+        this.lastLane = null;
+        // First obstacle spawns after 1.2s to let player settle in
+        this.spawnTimer = 1.2;
     }
 }
+

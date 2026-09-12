@@ -9,8 +9,8 @@ export class DifficultyManager {
                 name: 'EASY',
                 label: '🌱 Easy',
                 baseSpeed: 3.5,
-                obstacleIntervalMin: 2.6,
-                obstacleIntervalMax: 3.8,
+                obstacleIntervalMin: 2.8,
+                obstacleIntervalMax: 4.0,
                 speedRampRate: 0.015,
                 maxSpeedMultiplier: 1.4,
                 scoreMultiplier: 1.0
@@ -19,8 +19,8 @@ export class DifficultyManager {
                 name: 'MEDIUM',
                 label: '⚡ Medium',
                 baseSpeed: 5.0,
-                obstacleIntervalMin: 1.8,
-                obstacleIntervalMax: 2.8,
+                obstacleIntervalMin: 2.2,
+                obstacleIntervalMax: 3.2,
                 speedRampRate: 0.028,
                 maxSpeedMultiplier: 1.8,
                 scoreMultiplier: 1.5
@@ -29,8 +29,8 @@ export class DifficultyManager {
                 name: 'HARD',
                 label: '🔥 Hard',
                 baseSpeed: 7.2,
-                obstacleIntervalMin: 1.2,
-                obstacleIntervalMax: 1.9,
+                obstacleIntervalMin: 1.8,
+                obstacleIntervalMax: 2.4,
                 speedRampRate: 0.045,
                 maxSpeedMultiplier: 2.2,
                 scoreMultiplier: 2.0
@@ -84,10 +84,9 @@ export class DifficultyManager {
     getObstacleInterval() {
         const min = this.config.obstacleIntervalMin;
         const max = this.config.obstacleIntervalMax;
-        const randomBase = min + Math.random() * (max - min);
-        const speedMultiplier = this.getCurrentSpeed() / this.config.baseSpeed;
-        return randomBase / speedMultiplier;
+        return min + Math.random() * (max - min);
     }
+
 
     /**
      * @returns {number}

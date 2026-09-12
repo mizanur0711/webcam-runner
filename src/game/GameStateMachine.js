@@ -320,15 +320,25 @@ export class GameStateMachine {
     }
   }
 
+  rotateTheme() {
+    const themes = ['Forest', 'City', 'Space', 'Candy'];
+    const currentIndex = themes.indexOf(this.theme);
+    const nextIndex = (currentIndex + 1) % themes.length;
+    this.theme = themes[nextIndex];
+    if (this.sys.backgroundRenderer) this.sys.backgroundRenderer.setTheme(this.theme);
+  }
+
   // ================================================================
   // COUNTDOWN
   // ================================================================
   enter_COUNTDOWN() {
+    this.rotateTheme();
     this.stateData.counter = 3;
     this.stateData.timer = 0.5;
     this.resetPlayer();
     if (this.sys.audioManager) this.sys.audioManager.playCountdownBeep(3);
   }
+
 
   update_COUNTDOWN(dt, landmarks) {
     this.stateData.timer -= dt;
