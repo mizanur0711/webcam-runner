@@ -8,8 +8,8 @@ export class GameStateMachine {
   /**
    * @param {Object} systems - All game subsystems
    */
-  constructor({ presenceDetector, calibrator, obstacleManager, collisionDetector, scoreManager, difficultyManager, audioManager, renderer, uiRenderer, characterRenderer, obstacleRenderer, roadRenderer, backgroundRenderer }) {
-    this.sys = { presenceDetector, calibrator, obstacleManager, collisionDetector, scoreManager, difficultyManager, audioManager, renderer, uiRenderer, characterRenderer, obstacleRenderer, roadRenderer, backgroundRenderer };
+  constructor({ presenceDetector, calibrator, obstacleManager, collisionDetector, scoreManager, difficultyManager, audioManager, renderer, uiRenderer, characterRenderer, obstacleRenderer, roadRenderer, backgroundRenderer, collectibleManager, collectibleRenderer, particleManager, particleRenderer }) {
+    this.sys = { presenceDetector, calibrator, obstacleManager, collisionDetector, scoreManager, difficultyManager, audioManager, renderer, uiRenderer, characterRenderer, obstacleRenderer, roadRenderer, backgroundRenderer, collectibleManager, collectibleRenderer, particleManager, particleRenderer };
     if (this.sys.obstacleManager && this.sys.difficultyManager) {
       this.sys.obstacleManager.init(this.sys.difficultyManager);
     }
@@ -381,9 +381,9 @@ export class GameStateMachine {
   // ================================================================
   enter_PLAYING() {
     if (this.previousState !== 'PAUSED') {
-
       this.sys.obstacleManager.reset();
       if (this.sys.collectibleManager) this.sys.collectibleManager.reset();
+      if (this.sys.particleManager) this.sys.particleManager.reset();
       this.sys.scoreManager.reset();
       this.sys.difficultyManager.reset();
     }
@@ -398,6 +398,9 @@ export class GameStateMachine {
       this.transition('PAUSED');
       return;
     }
+
+    // Track jump landing for particle emission
+    const wasJumping = this.player.isJumping;
 
     // Gesture detection
     if (this.gestureDetector && landmarks) {
@@ -436,6 +439,11 @@ export class GameStateMachine {
         this.player.isJumping = false;
         this.player.vy = 0;
       }
+    }
+
+    // Detect jump landing impact
+    if (wasJumping && !this.player.isJumping && this.sys.particleManager) {
+      this.sys.particleManager.emitLandingBurst(this.player.visualX, 320);
     }
 
     // Duck timer
@@ -477,6 +485,21 @@ export class GameStateMachine {
       if (starsCaught > 0) {
         this.sys.scoreManager.addStar(starsCaught);
         if (this.sys.audioManager) this.sys.audioManager.playStarPickup();
+        if (this.sys.particleManager) {
+          this.sys.particleManager.emitStarSparkles(this.player.visualX, this.player.y + 40, 320);
+        }
+      }
+    }
+
+    // Particles update & footstep dust
+    if (this.sys.particleManager) {
+      this.sys.particleManager.update(dt, speed);
+      if (!this.player.isJumping && !this.player.isDucking) {
+        this.stateData.dustTimer = (this.stateData.dustTimer || 0) + dt;
+        if (this.stateData.dustTimer > 0.12) {
+          this.sys.particleManager.emitFootstepDust(this.player.visualX, 320);
+          this.stateData.dustTimer = 0;
+        }
       }
     }
 
@@ -530,6 +553,15 @@ export class GameStateMachine {
       });
     }
 
+    // Draw 3D particles (dust, sparkles, rings, confetti)
+    const particles = this.sys.particleManager ? this.sys.particleManager.getActiveParticles() : [];
+    if (this.sys.particleRenderer && particles.length > 0) {
+      const sortedParticles = [...particles].sort((a, b) => b.z - a.z);
+      for (const p of sortedParticles) {
+        this.sys.particleRenderer.render(ctx, p);
+      }
+    }
+
     // HUD
     if (this.sys.uiRenderer) {
       this.sys.uiRenderer.renderHUD(
@@ -580,7 +612,9 @@ export class GameStateMachine {
     if (this.sys.audioManager) {
       this.sys.audioManager.playCollision();
       if (this.sys.scoreManager.isNewHighScore) {
-        // Slight delay for fanfare after collision sound
+        if (this.sys.particleManager) {
+          this.sys.particleManager.emitConfettiShower();
+        }
         setTimeout(() => {
           if (this.sys.audioManager) this.sys.audioManager.playHighScore();
         }, 300);
@@ -591,6 +625,9 @@ export class GameStateMachine {
 
   update_GAME_OVER(dt, landmarks) {
     this.sys.presenceDetector.update(landmarks);
+    if (this.sys.particleManager) {
+      this.sys.particleManager.update(dt, 0); // Confetti falling animation
+    }
     if (this.sys.presenceDetector.justLeft) {
       this.transition('IDLE');
       return;

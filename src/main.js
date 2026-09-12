@@ -17,12 +17,14 @@ import { ObstacleRenderer } from './renderer/ObstacleRenderer.js';
 import { CharacterRenderer } from './renderer/CharacterRenderer.js';
 import { UIRenderer } from './renderer/UIRenderer.js';
 import { CollectibleRenderer } from './renderer/CollectibleRenderer.js';
+import { ParticleRenderer } from './renderer/ParticleRenderer.js';
 
 // Game logic
 import { GameStateMachine } from './game/GameStateMachine.js';
 import { GameLoop } from './game/GameLoop.js';
 import { ObstacleManager } from './game/ObstacleManager.js';
 import { CollectibleManager } from './game/CollectibleManager.js';
+import { ParticleManager } from './game/ParticleManager.js';
 import { CollisionDetector } from './game/CollisionDetector.js';
 import { ScoreManager } from './game/ScoreManager.js';
 import { DifficultyManager } from './game/DifficultyManager.js';
@@ -110,6 +112,7 @@ async function init() {
     const obstacleRenderer = new ObstacleRenderer(renderer);
     const characterRenderer = new CharacterRenderer(renderer);
     const collectibleRenderer = new CollectibleRenderer(renderer);
+    const particleRenderer = new ParticleRenderer(renderer);
     const uiRenderer = new UIRenderer(renderer);
 
     // 3. Create game systems
@@ -117,6 +120,7 @@ async function init() {
     const calibrator = new Calibrator();
     const obstacleManager = new ObstacleManager();
     const collectibleManager = new CollectibleManager();
+    const particleManager = new ParticleManager();
     const collisionDetector = new CollisionDetector();
     const scoreManager = new ScoreManager();
 
@@ -124,6 +128,7 @@ async function init() {
     scoreManager.init();
     obstacleManager.init(difficultyManager);
     collectibleManager.init();
+    particleManager.init();
 
     // 4. Load MediaPipe model
     setStatus('Loading pose detection model...');
@@ -153,6 +158,7 @@ async function init() {
           calibrator,
           obstacleManager,
           collectibleManager,
+          particleManager,
           collisionDetector,
           scoreManager,
           difficultyManager,
@@ -162,6 +168,7 @@ async function init() {
           characterRenderer,
           obstacleRenderer,
           collectibleRenderer,
+          particleRenderer,
           roadRenderer,
           backgroundRenderer
         });
