@@ -46,11 +46,11 @@ export class CollectibleManager {
             }
         }
 
-        // Spawn timer — rapid frequent star spawns for maximum player engagement
+        // Spawn timer — balanced star spawns (~1.05s delay) to avoid visual congestion
         this.spawnTimer -= dt;
         if (this.spawnTimer <= 0) {
             this.spawn(activeObstacles);
-            this.spawnTimer = 0.45 + Math.random() * 0.45; // Spawns stars every ~0.45 - 0.9 seconds
+            this.spawnTimer = 0.75 + Math.random() * 0.6; // Spawns stars every ~0.75 - 1.35 seconds
         }
     }
 
@@ -76,8 +76,8 @@ export class CollectibleManager {
             }
         }
 
-        // 50% chance to spawn a trail of 2-3 stars in a row
-        const count = Math.random() < 0.5 ? Math.floor(Math.random() * 2) + 2 : 1;
+        // 30% chance to spawn a pair of 2 stars in a row
+        const count = Math.random() < 0.3 ? 2 : 1;
 
         for (let k = 0; k < count; k++) {
             const item = this.pool.find(i => !i.active);
@@ -88,7 +88,7 @@ export class CollectibleManager {
             item.lane = lane;
             item.x = lane * 180;
             item.y = yPos;
-            item.z = 1800 + (k * 140); // space stars out nicely in z
+            item.z = 1800 + (k * 160); // space stars out cleanly in z
             item.prevZ = item.z;
             item.rotation = Math.random() * Math.PI * 2;
         }
@@ -136,6 +136,6 @@ export class CollectibleManager {
             item.active = false;
             item.collected = false;
         }
-        this.spawnTimer = 0.4;
+        this.spawnTimer = 0.7;
     }
 }
