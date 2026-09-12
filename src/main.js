@@ -16,11 +16,13 @@ import { BackgroundRenderer } from './renderer/BackgroundRenderer.js';
 import { ObstacleRenderer } from './renderer/ObstacleRenderer.js';
 import { CharacterRenderer } from './renderer/CharacterRenderer.js';
 import { UIRenderer } from './renderer/UIRenderer.js';
+import { CollectibleRenderer } from './renderer/CollectibleRenderer.js';
 
 // Game logic
 import { GameStateMachine } from './game/GameStateMachine.js';
 import { GameLoop } from './game/GameLoop.js';
 import { ObstacleManager } from './game/ObstacleManager.js';
+import { CollectibleManager } from './game/CollectibleManager.js';
 import { CollisionDetector } from './game/CollisionDetector.js';
 import { ScoreManager } from './game/ScoreManager.js';
 import { DifficultyManager } from './game/DifficultyManager.js';
@@ -107,19 +109,21 @@ async function init() {
     const backgroundRenderer = new BackgroundRenderer(renderer);
     const obstacleRenderer = new ObstacleRenderer(renderer);
     const characterRenderer = new CharacterRenderer(renderer);
+    const collectibleRenderer = new CollectibleRenderer(renderer);
     const uiRenderer = new UIRenderer(renderer);
 
     // 3. Create game systems
     const presenceDetector = new PresenceDetector();
     const calibrator = new Calibrator();
     const obstacleManager = new ObstacleManager();
+    const collectibleManager = new CollectibleManager();
     const collisionDetector = new CollisionDetector();
     const scoreManager = new ScoreManager();
 
     // Init managers
     scoreManager.init();
     obstacleManager.init(difficultyManager);
-
+    collectibleManager.init();
 
     // 4. Load MediaPipe model
     setStatus('Loading pose detection model...');
@@ -148,6 +152,7 @@ async function init() {
           presenceDetector,
           calibrator,
           obstacleManager,
+          collectibleManager,
           collisionDetector,
           scoreManager,
           difficultyManager,
@@ -156,9 +161,11 @@ async function init() {
           uiRenderer,
           characterRenderer,
           obstacleRenderer,
+          collectibleRenderer,
           roadRenderer,
           backgroundRenderer
         });
+
 
         // 8. Create and start game loop
         gameLoop = new GameLoop({

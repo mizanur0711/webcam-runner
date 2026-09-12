@@ -6,6 +6,7 @@ export class ScoreManager {
         this.STORAGE_KEY = 'runnerGame_highScore';
         this.currentScore = 0;
         this.highScore = 0;
+        this.starsCollected = 0;
         this.isNewHighScore = false;
     }
 
@@ -33,6 +34,17 @@ export class ScoreManager {
         }
     }
 
+    /**
+     * Add collected stars and bonus score
+     * @param {number} [count=1] 
+     */
+    addStar(count = 1) {
+        this.starsCollected += count;
+        this.currentScore += count * 50; // +50 bonus score points
+        if (this.currentScore > this.highScore) {
+            this.isNewHighScore = true;
+        }
+    }
 
     finalizeRun() {
         const finalScore = Math.floor(this.currentScore);
@@ -48,6 +60,8 @@ export class ScoreManager {
 
     reset() {
         this.currentScore = 0;
+        this.starsCollected = 0;
         this.isNewHighScore = false;
     }
 }
+

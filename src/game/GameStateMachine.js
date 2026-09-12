@@ -375,7 +375,9 @@ export class GameStateMachine {
   // ================================================================
   enter_PLAYING() {
     if (this.previousState !== 'PAUSED') {
+
       this.sys.obstacleManager.reset();
+      if (this.sys.collectibleManager) this.sys.collectibleManager.reset();
       this.sys.scoreManager.reset();
       this.sys.difficultyManager.reset();
     }
@@ -462,6 +464,16 @@ export class GameStateMachine {
     // Obstacles
     this.sys.obstacleManager.update(dt, speed);
 
+    // Collectibles update & pickup detection
+    if (this.sys.collectibleManager) {
+      this.sys.collectibleManager.update(dt, speed, this.sys.obstacleManager.getActiveObstacles());
+      const starsCaught = this.sys.collectibleManager.checkPickups(this.player);
+      if (starsCaught > 0) {
+        this.sys.scoreManager.addStar(starsCaught);
+        if (this.sys.audioManager) this.sys.audioManager.playStarPickup();
+      }
+    }
+
     // Score
     const scoreMult = this.sys.difficultyManager.getScoreMultiplier();
     this.sys.scoreManager.update(dt, speed, scoreMult);
@@ -489,10 +501,18 @@ export class GameStateMachine {
     // Draw obstacles (back to front for proper layering)
     const obstacles = this.sys.obstacleManager.getActiveObstacles();
     if (this.sys.obstacleRenderer && obstacles.length > 0) {
-      // Sort by Z descending (farthest first)
       const sorted = [...obstacles].sort((a, b) => b.z - a.z);
       for (const obs of sorted) {
         this.sys.obstacleRenderer.render(ctx, obs, this.theme);
+      }
+    }
+
+    // Draw collectibles
+    const collectibles = this.sys.collectibleManager ? this.sys.collectibleManager.getActiveCollectibles() : [];
+    if (this.sys.collectibleRenderer && collectibles.length > 0) {
+      const sortedItems = [...collectibles].sort((a, b) => b.z - a.z);
+      for (const item of sortedItems) {
+        this.sys.collectibleRenderer.render(ctx, item);
       }
     }
 
@@ -512,11 +532,11 @@ export class GameStateMachine {
         this.sys.scoreManager.highScore,
         this.player.tier,
         this.gestureDetector ? this.gestureDetector.currentGesture : null,
-        this.sys.difficultyManager ? this.sys.difficultyManager.getBadge() : null
+        this.sys.difficultyManager ? this.sys.difficultyManager.getBadge() : null,
+        this.sys.scoreManager.starsCollected
       );
     }
   }
-
 
   // ================================================================
   // PAUSED
@@ -588,12 +608,14 @@ export class GameStateMachine {
         uiCtx,
         Math.floor(this.sys.scoreManager.currentScore),
         this.sys.scoreManager.highScore,
-        this.sys.scoreManager.isNewHighScore
+        this.sys.scoreManager.isNewHighScore,
+        this.sys.scoreManager.starsCollected
       );
     }
   }
 
   // ================================================================
+
   // Helpers
   // ================================================================
   resetPlayer() {
