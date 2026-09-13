@@ -8,8 +8,8 @@ export class GameStateMachine {
   /**
    * @param {Object} systems - All game subsystems
    */
-  constructor({ presenceDetector, calibrator, obstacleManager, collisionDetector, scoreManager, difficultyManager, audioManager, renderer, uiRenderer, characterRenderer, obstacleRenderer, roadRenderer, backgroundRenderer }) {
-    this.sys = { presenceDetector, calibrator, obstacleManager, collisionDetector, scoreManager, difficultyManager, audioManager, renderer, uiRenderer, characterRenderer, obstacleRenderer, roadRenderer, backgroundRenderer };
+  constructor({ presenceDetector, calibrator, obstacleManager, collisionDetector, scoreManager, difficultyManager, audioManager, renderer, uiRenderer, characterRenderer, obstacleRenderer, roadRenderer, backgroundRenderer, collectibleManager, collectibleRenderer, particleManager, particleRenderer }) {
+    this.sys = { presenceDetector, calibrator, obstacleManager, collisionDetector, scoreManager, difficultyManager, audioManager, renderer, uiRenderer, characterRenderer, obstacleRenderer, roadRenderer, backgroundRenderer, collectibleManager, collectibleRenderer, particleManager, particleRenderer };
     if (this.sys.obstacleManager && this.sys.difficultyManager) {
       this.sys.obstacleManager.init(this.sys.difficultyManager);
     }
@@ -47,6 +47,7 @@ export class GameStateMachine {
     };
 
     this.theme = 'Forest';
+    this.onStateChange = null;
   }
 
   /**
@@ -62,7 +63,12 @@ export class GameStateMachine {
 
     const enterMethod = `enter_${newState}`;
     if (this[enterMethod]) this[enterMethod]();
+
+    if (typeof this.onStateChange === 'function') {
+      this.onStateChange(newState);
+    }
   }
+
 
   /**
    * @param {number} dt - Delta time in seconds
@@ -320,15 +326,25 @@ export class GameStateMachine {
     }
   }
 
+  rotateTheme() {
+    const themes = ['Forest', 'City', 'Space', 'Candy'];
+    const currentIndex = themes.indexOf(this.theme);
+    const nextIndex = (currentIndex + 1) % themes.length;
+    this.theme = themes[nextIndex];
+    if (this.sys.backgroundRenderer) this.sys.backgroundRenderer.setTheme(this.theme);
+  }
+
   // ================================================================
   // COUNTDOWN
   // ================================================================
   enter_COUNTDOWN() {
+    this.rotateTheme();
     this.stateData.counter = 3;
     this.stateData.timer = 0.5;
     this.resetPlayer();
     if (this.sys.audioManager) this.sys.audioManager.playCountdownBeep(3);
   }
+
 
   update_COUNTDOWN(dt, landmarks) {
     this.stateData.timer -= dt;
@@ -366,6 +382,8 @@ export class GameStateMachine {
   enter_PLAYING() {
     if (this.previousState !== 'PAUSED') {
       this.sys.obstacleManager.reset();
+      if (this.sys.collectibleManager) this.sys.collectibleManager.reset();
+      if (this.sys.particleManager) this.sys.particleManager.reset();
       this.sys.scoreManager.reset();
       this.sys.difficultyManager.reset();
     }
@@ -380,6 +398,9 @@ export class GameStateMachine {
       this.transition('PAUSED');
       return;
     }
+
+    // Track jump landing for particle emission
+    const wasJumping = this.player.isJumping;
 
     // Gesture detection
     if (this.gestureDetector && landmarks) {
@@ -420,6 +441,11 @@ export class GameStateMachine {
       }
     }
 
+    // Detect jump landing impact
+    if (wasJumping && !this.player.isJumping && this.sys.particleManager) {
+      this.sys.particleManager.emitLandingBurst(this.player.visualX, 320);
+    }
+
     // Duck timer
     if (this.player.isDucking) {
       this.player.duckTimer -= dt;
@@ -452,8 +478,35 @@ export class GameStateMachine {
     // Obstacles
     this.sys.obstacleManager.update(dt, speed);
 
+    // Collectibles update & pickup detection
+    if (this.sys.collectibleManager) {
+      this.sys.collectibleManager.update(dt, speed, this.sys.obstacleManager.getActiveObstacles());
+      const starsCaught = this.sys.collectibleManager.checkPickups(this.player);
+      if (starsCaught > 0) {
+        const mult = this.sys.difficultyManager ? this.sys.difficultyManager.getScoreMultiplier() : 1.0;
+        this.sys.scoreManager.addStar(starsCaught, mult);
+        if (this.sys.audioManager) this.sys.audioManager.playStarPickup();
+        if (this.sys.particleManager) {
+          this.sys.particleManager.emitStarSparkles(this.player.visualX, this.player.y + 40, 320);
+        }
+      }
+    }
+
+    // Particles update & footstep dust
+    if (this.sys.particleManager) {
+      this.sys.particleManager.update(dt, speed);
+      if (!this.player.isJumping && !this.player.isDucking) {
+        this.stateData.dustTimer = (this.stateData.dustTimer || 0) + dt;
+        if (this.stateData.dustTimer > 0.12) {
+          this.sys.particleManager.emitFootstepDust(this.player.visualX, 320);
+          this.stateData.dustTimer = 0;
+        }
+      }
+    }
+
     // Score
-    this.sys.scoreManager.update(dt, speed);
+    const scoreMult = this.sys.difficultyManager.getScoreMultiplier();
+    this.sys.scoreManager.update(dt, speed, scoreMult);
 
     // Scroll
     this.stateData.scrollOffset += speed * 60 * dt;
@@ -478,10 +531,18 @@ export class GameStateMachine {
     // Draw obstacles (back to front for proper layering)
     const obstacles = this.sys.obstacleManager.getActiveObstacles();
     if (this.sys.obstacleRenderer && obstacles.length > 0) {
-      // Sort by Z descending (farthest first)
       const sorted = [...obstacles].sort((a, b) => b.z - a.z);
       for (const obs of sorted) {
         this.sys.obstacleRenderer.render(ctx, obs, this.theme);
+      }
+    }
+
+    // Draw collectibles
+    const collectibles = this.sys.collectibleManager ? this.sys.collectibleManager.getActiveCollectibles() : [];
+    if (this.sys.collectibleRenderer && collectibles.length > 0) {
+      const sortedItems = [...collectibles].sort((a, b) => b.z - a.z);
+      for (const item of sortedItems) {
+        this.sys.collectibleRenderer.render(ctx, item);
       }
     }
 
@@ -493,6 +554,15 @@ export class GameStateMachine {
       });
     }
 
+    // Draw 3D particles (dust, sparkles, rings, confetti)
+    const particles = this.sys.particleManager ? this.sys.particleManager.getActiveParticles() : [];
+    if (this.sys.particleRenderer && particles.length > 0) {
+      const sortedParticles = [...particles].sort((a, b) => b.z - a.z);
+      for (const p of sortedParticles) {
+        this.sys.particleRenderer.render(ctx, p);
+      }
+    }
+
     // HUD
     if (this.sys.uiRenderer) {
       this.sys.uiRenderer.renderHUD(
@@ -500,7 +570,9 @@ export class GameStateMachine {
         Math.floor(this.sys.scoreManager.currentScore),
         this.sys.scoreManager.highScore,
         this.player.tier,
-        this.gestureDetector ? this.gestureDetector.currentGesture : null
+        this.gestureDetector ? this.gestureDetector.currentGesture : null,
+        this.sys.difficultyManager ? this.sys.difficultyManager.getBadge() : null,
+        this.sys.scoreManager.starsCollected
       );
     }
   }
@@ -541,7 +613,9 @@ export class GameStateMachine {
     if (this.sys.audioManager) {
       this.sys.audioManager.playCollision();
       if (this.sys.scoreManager.isNewHighScore) {
-        // Slight delay for fanfare after collision sound
+        if (this.sys.particleManager) {
+          this.sys.particleManager.emitConfettiShower();
+        }
         setTimeout(() => {
           if (this.sys.audioManager) this.sys.audioManager.playHighScore();
         }, 300);
@@ -552,6 +626,9 @@ export class GameStateMachine {
 
   update_GAME_OVER(dt, landmarks) {
     this.sys.presenceDetector.update(landmarks);
+    if (this.sys.particleManager) {
+      this.sys.particleManager.update(dt, 0); // Confetti falling animation
+    }
     if (this.sys.presenceDetector.justLeft) {
       this.transition('IDLE');
       return;
@@ -575,12 +652,14 @@ export class GameStateMachine {
         uiCtx,
         Math.floor(this.sys.scoreManager.currentScore),
         this.sys.scoreManager.highScore,
-        this.sys.scoreManager.isNewHighScore
+        this.sys.scoreManager.isNewHighScore,
+        this.sys.scoreManager.starsCollected
       );
     }
   }
 
   // ================================================================
+
   // Helpers
   // ================================================================
   resetPlayer() {

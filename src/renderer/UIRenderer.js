@@ -7,7 +7,7 @@ export class UIRenderer {
         ctx.clearRect(0, 0, this.renderer.width, this.renderer.height);
     }
 
-    renderHUD(ctx, score, highScore, tier, currentGesture) {
+    renderHUD(ctx, score, highScore, tier, currentGesture, difficultyBadge, starsCount = 0) {
         this.clear(ctx);
         const w = this.renderer.width;
         
@@ -30,8 +30,25 @@ export class UIRenderer {
 
         ctx.textAlign = 'left';
         ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 28px Fredoka, sans-serif';
-        ctx.fillText(`Tier: ${tier}`, 20, 50);
+        ctx.font = 'bold 24px Fredoka, sans-serif';
+        ctx.fillText(`Tier: ${tier}`, 20, 42);
+
+        if (difficultyBadge) {
+            ctx.font = 'bold 20px Fredoka, sans-serif';
+            ctx.fillStyle = '#FFD700';
+            ctx.fillText(difficultyBadge, 20, 72);
+        }
+
+        // Top-right Stars Counter Badge
+        ctx.textAlign = 'right';
+        ctx.font = 'bold 26px Fredoka, sans-serif';
+        ctx.fillStyle = '#FFD700';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+        ctx.shadowBlur = 6;
+        ctx.fillText(`⭐ ${starsCount}`, w - 24, 42);
+        ctx.shadowBlur = 0;
+
+
 
         // Visual gesture feedback popup on main canvas
         if (currentGesture) {
@@ -162,7 +179,7 @@ export class UIRenderer {
         ctx.fillText('Come back! 👋', w / 2, h / 2);
     }
 
-    renderGameOver(ctx, score, highScore, isNewHighScore) {
+    renderGameOver(ctx, score, highScore, isNewHighScore, starsCount = 0) {
         this.clear(ctx);
         const w = this.renderer.width;
         const h = this.renderer.height;
@@ -171,7 +188,7 @@ export class UIRenderer {
         ctx.fillRect(0, 0, w, h);
 
         const cardW = 500;
-        const cardH = 300;
+        const cardH = 320;
         const cardX = (w - cardW) / 2;
         const cardY = (h - cardH) / 2;
 
@@ -184,28 +201,33 @@ export class UIRenderer {
         ctx.stroke();
 
         ctx.textAlign = 'center';
-        ctx.font = 'bold 48px Fredoka, sans-serif';
+        ctx.font = 'bold 44px Fredoka, sans-serif';
         ctx.fillStyle = '#E74C3C';
-        ctx.fillText('Game Over', w / 2, cardY + 70);
+        ctx.fillText('Game Over', w / 2, cardY + 60);
 
-        ctx.font = 'bold 64px Fredoka, sans-serif';
+        ctx.font = 'bold 60px Fredoka, sans-serif';
         ctx.fillStyle = '#FFFFFF';
-        ctx.fillText(Math.floor(score).toString(), w / 2, cardY + 150);
+        ctx.fillText(Math.floor(score).toString(), w / 2, cardY + 135);
+
+        ctx.font = 'bold 24px Fredoka, sans-serif';
+        ctx.fillStyle = '#FFD700';
+        ctx.fillText(`⭐ Stars Collected: ${starsCount}`, w / 2, cardY + 180);
 
         if (isNewHighScore) {
-            ctx.font = 'bold 32px Fredoka, sans-serif';
-            ctx.fillStyle = '#FFD700';
-            ctx.fillText('⭐ NEW BEST! ⭐', w / 2, cardY + 200);
+            ctx.font = 'bold 28px Fredoka, sans-serif';
+            ctx.fillStyle = '#2ECC71';
+            ctx.fillText('🏆 NEW BEST SCORE! 🏆', w / 2, cardY + 225);
         } else {
-            ctx.font = 'bold 24px Fredoka, sans-serif';
+            ctx.font = 'bold 22px Fredoka, sans-serif';
             ctx.fillStyle = '#AAAAAA';
-            ctx.fillText(`Best: ${Math.floor(highScore)}`, w / 2, cardY + 200);
+            ctx.fillText(`Best: ${Math.floor(highScore)}`, w / 2, cardY + 225);
         }
 
-        ctx.font = '20px Fredoka, sans-serif';
+        ctx.font = '19px Fredoka, sans-serif';
         ctx.fillStyle = '#FFFFFF';
-        ctx.fillText('Walk away and come back to play again!', w / 2, cardY + 260);
+        ctx.fillText('Walk away and come back to play again!', w / 2, cardY + 280);
     }
+
 
     renderCameraError(ctx, errorType) {
         this.clear(ctx);

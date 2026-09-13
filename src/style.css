@@ -247,26 +247,37 @@ html, body {
   padding: 0;
 }
 
-#training-btn {
+#action-btn {
   position: absolute;
   top: 20px;
   right: 140px;
   z-index: 20;
   height: var(--btn-size);
-  padding: 0 18px;
+  padding: 0 22px;
   border-radius: 24px;
-  border: 2px solid var(--color-glass-border);
-  background: linear-gradient(135deg, rgba(255, 204, 0, 0.25), rgba(78, 205, 196, 0.25));
-  backdrop-filter: blur(8px);
   font-family: var(--font-primary);
-  font-size: 1rem;
-  font-weight: 600;
-  color: #FFFFFF;
+  font-size: 1.05rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+#action-btn.start-mode {
+  border: none;
+  background: linear-gradient(135deg, #2ecc71, #1abc9c);
+  color: #0a0a1a;
+  box-shadow: 0 4px 18px rgba(46, 204, 113, 0.45);
+}
+
+#action-btn.practice-mode {
+  border: 2px solid var(--color-glass-border);
+  background: linear-gradient(135deg, rgba(255, 204, 0, 0.25), rgba(78, 205, 196, 0.25));
+  backdrop-filter: blur(8px);
+  color: #FFFFFF;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
 }
 
 #mute-btn {
@@ -279,18 +290,81 @@ html, body {
   right: 80px;
 }
 
+#action-btn:hover,
 #mute-btn:hover,
-#pause-btn:hover,
-#training-btn:hover {
-  background: rgba(255, 255, 255, 0.25);
+#pause-btn:hover {
   transform: scale(1.06);
 }
 
+#action-btn:active,
 #mute-btn:active,
-#pause-btn:active,
-#training-btn:active {
+#pause-btn:active {
   transform: scale(0.95);
 }
+
+
+
+/* ============================================================
+   Difficulty Selector (Easy / Medium / Hard)
+   ============================================================ */
+#difficulty-selector {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 20;
+  display: flex;
+  gap: 8px;
+  background: var(--color-glass);
+  backdrop-filter: blur(10px);
+  padding: 4px;
+  border-radius: 28px;
+  border: 2px solid var(--color-glass-border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.diff-btn {
+  font-family: var(--font-primary);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+  background: transparent;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.diff-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.diff-btn.active[data-level="EASY"] {
+  color: #0a0a1a;
+  background: linear-gradient(135deg, #2ecc71, #a8e6cf);
+  box-shadow: 0 4px 15px rgba(46, 204, 113, 0.5);
+  transform: scale(1.05);
+}
+
+.diff-btn.active[data-level="MEDIUM"] {
+  color: #0a0a1a;
+  background: linear-gradient(135deg, #f1c40f, #ffd54f);
+  box-shadow: 0 4px 15px rgba(241, 196, 15, 0.5);
+  transform: scale(1.05);
+}
+
+.diff-btn.active[data-level="HARD"] {
+  color: #ffffff;
+  background: linear-gradient(135deg, #e74c3c, #ff6b6b);
+  box-shadow: 0 4px 15px rgba(231, 76, 60, 0.6);
+  transform: scale(1.05);
+}
+
 
 /* ============================================================
    Responsive Adjustments

@@ -16,11 +16,15 @@ import { BackgroundRenderer } from './renderer/BackgroundRenderer.js';
 import { ObstacleRenderer } from './renderer/ObstacleRenderer.js';
 import { CharacterRenderer } from './renderer/CharacterRenderer.js';
 import { UIRenderer } from './renderer/UIRenderer.js';
+import { CollectibleRenderer } from './renderer/CollectibleRenderer.js';
+import { ParticleRenderer } from './renderer/ParticleRenderer.js';
 
 // Game logic
 import { GameStateMachine } from './game/GameStateMachine.js';
 import { GameLoop } from './game/GameLoop.js';
 import { ObstacleManager } from './game/ObstacleManager.js';
+import { CollectibleManager } from './game/CollectibleManager.js';
+import { ParticleManager } from './game/ParticleManager.js';
 import { CollisionDetector } from './game/CollisionDetector.js';
 import { ScoreManager } from './game/ScoreManager.js';
 import { DifficultyManager } from './game/DifficultyManager.js';
@@ -47,11 +51,15 @@ const pauseBtn = document.getElementById('pause-btn');
 // Initialize Systems
 // ============================================================
 
+// Global instances
+const difficultyManager = new DifficultyManager();
+
 /** @type {GameLoop|null} */
 let gameLoop = null;
 
 /** @type {GameStateMachine|null} */
 let stateMachine = null;
+
 
 /**
  * Update loading status text
@@ -103,19 +111,24 @@ async function init() {
     const backgroundRenderer = new BackgroundRenderer(renderer);
     const obstacleRenderer = new ObstacleRenderer(renderer);
     const characterRenderer = new CharacterRenderer(renderer);
+    const collectibleRenderer = new CollectibleRenderer(renderer);
+    const particleRenderer = new ParticleRenderer(renderer);
     const uiRenderer = new UIRenderer(renderer);
 
     // 3. Create game systems
     const presenceDetector = new PresenceDetector();
     const calibrator = new Calibrator();
     const obstacleManager = new ObstacleManager();
+    const collectibleManager = new CollectibleManager();
+    const particleManager = new ParticleManager();
     const collisionDetector = new CollisionDetector();
     const scoreManager = new ScoreManager();
-    const difficultyManager = new DifficultyManager();
 
     // Init managers
     scoreManager.init();
     obstacleManager.init(difficultyManager);
+    collectibleManager.init();
+    particleManager.init();
 
     // 4. Load MediaPipe model
     setStatus('Loading pose detection model...');
@@ -144,6 +157,8 @@ async function init() {
           presenceDetector,
           calibrator,
           obstacleManager,
+          collectibleManager,
+          particleManager,
           collisionDetector,
           scoreManager,
           difficultyManager,
@@ -152,9 +167,12 @@ async function init() {
           uiRenderer,
           characterRenderer,
           obstacleRenderer,
+          collectibleRenderer,
+          particleRenderer,
           roadRenderer,
           backgroundRenderer
         });
+
 
         // 8. Create and start game loop
         gameLoop = new GameLoop({
@@ -164,12 +182,16 @@ async function init() {
           videoElement: webcamVideo
         });
 
+        stateMachine.onStateChange = (state) => {
+          updateActionButtonUI(state);
+        };
+
         // Enter initial IDLE state
         stateMachine.transition('IDLE');
 
         // Show control buttons
         if (pauseBtn) pauseBtn.style.display = 'flex';
-        if (trainingBtn) trainingBtn.style.display = 'flex';
+        if (actionBtn) actionBtn.style.display = 'flex';
 
         hideLoading();
         gameLoop.start();
@@ -214,6 +236,46 @@ function handleCameraError(error, renderer, uiRenderer) {
 // UI Button Handlers
 // ============================================================
 
+// Single Interchangeable Action Button (Start Game <-> Practice)
+const actionBtn = document.getElementById('action-btn');
+
+function updateActionButtonUI(state) {
+  if (!actionBtn) return;
+  if (state === 'TRAINING' || state === 'IDLE' || state === 'GAME_OVER') {
+    actionBtn.textContent = '🚀 Start Game';
+    actionBtn.className = 'start-mode';
+  } else {
+    actionBtn.textContent = '🎓 Practice';
+    actionBtn.className = 'practice-mode';
+  }
+}
+
+// Difficulty buttons (Easy / Medium / Hard)
+const diffButtons = document.querySelectorAll('.diff-btn');
+
+function syncDifficultyUI(currentLevel) {
+  diffButtons.forEach(btn => {
+    if (btn.dataset.level === currentLevel) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+}
+
+// Initial sync with loaded difficulty
+syncDifficultyUI(difficultyManager.currentLevel);
+
+diffButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    audioManager.init();
+    const level = btn.dataset.level;
+    difficultyManager.setLevel(level);
+    syncDifficultyUI(level);
+    if (audioManager) audioManager.playCountdownBeep(3);
+  });
+});
+
 // Mute button
 if (muteBtn) {
   muteBtn.addEventListener('click', () => {
@@ -223,12 +285,19 @@ if (muteBtn) {
   });
 }
 
-const trainingBtn = document.getElementById('training-btn');
-
-// In camera button handler initialization
-// Show pause and training buttons
-if (pauseBtn) pauseBtn.style.display = 'flex';
-if (trainingBtn) trainingBtn.style.display = 'flex';
+// Action Button click handler
+if (actionBtn) {
+  actionBtn.addEventListener('click', () => {
+    audioManager.init();
+    if (stateMachine) {
+      if (stateMachine.currentState === 'TRAINING' || stateMachine.currentState === 'IDLE' || stateMachine.currentState === 'GAME_OVER') {
+        stateMachine.transition('COUNTDOWN');
+      } else {
+        stateMachine.transition('TRAINING');
+      }
+    }
+  });
+}
 
 // Pause button (manual pause for parents)
 if (pauseBtn) {
@@ -245,20 +314,8 @@ if (pauseBtn) {
   });
 }
 
-// Training Lobby button
-if (trainingBtn) {
-  trainingBtn.addEventListener('click', () => {
-    if (stateMachine) {
-      if (stateMachine.currentState === 'TRAINING') {
-        stateMachine.transition('COUNTDOWN');
-        trainingBtn.textContent = '🎓 Practice';
-      } else {
-        stateMachine.transition('TRAINING');
-        trainingBtn.textContent = '🚀 Start Run';
-      }
-    }
-  });
-}
+
+
 
 // ============================================================
 // Start

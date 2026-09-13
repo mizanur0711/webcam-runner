@@ -339,7 +339,41 @@ class AudioManager {
             osc.stop(this.ctx.currentTime + note.time + durationPerNote);
         });
     }
+
+    /**
+     * Plays a sparkling ascending chime when collecting a star.
+     */
+    playStarPickup() {
+        if (this._muted || !this.ctx) return;
+
+        const notes = [
+            { freq: 1046.50, time: 0 },    // C6
+            { freq: 1318.51, time: 0.08 }, // E6
+            { freq: 1567.98, time: 0.16 }  // G6
+        ];
+
+        const durationPerNote = 0.15;
+
+        notes.forEach(note => {
+            const osc = this.ctx.createOscillator();
+            const gainNode = this.ctx.createGain();
+
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(note.freq, this.ctx.currentTime + note.time);
+
+            gainNode.gain.setValueAtTime(0, this.ctx.currentTime + note.time);
+            gainNode.gain.linearRampToValueAtTime(0.25, this.ctx.currentTime + note.time + 0.02);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + note.time + durationPerNote);
+
+            osc.connect(gainNode);
+            gainNode.connect(this.masterGain);
+
+            osc.start(this.ctx.currentTime + note.time);
+            osc.stop(this.ctx.currentTime + note.time + durationPerNote);
+        });
+    }
 }
+
 
 // Export a singleton instance
 export const audioManager = new AudioManager();

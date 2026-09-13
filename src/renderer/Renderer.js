@@ -66,6 +66,57 @@ export class Renderer {
         };
     }
 
+    /**
+     * Calculates fog opacity based on distance (worldZ).
+     * @param {number} worldZ 
+     * @returns {number} alpha between 0.0 and 0.65
+     */
+    static getFogAlpha(worldZ) {
+        if (worldZ < 700) return 0;
+        const fogFactor = (worldZ - 700) / 1100;
+        return Math.min(0.65, Math.max(0, fogFactor));
+    }
+
+    /**
+     * Returns lit, top-lit, and shadow face colors from a hex/rgb base color.
+     * @param {string} hex 
+     * @returns {{ front: string, top: string, side: string, dark: string }}
+     */
+    static get3DFaceColors(hex) {
+        if (!hex || typeof hex !== 'string') {
+            return { front: '#888888', top: '#aaaaaa', side: '#555555', dark: '#333333' };
+        }
+        let c = hex.replace('#', '');
+        if (c.length === 3) c = c.split('').map(x => x + x).join('');
+        const num = parseInt(c, 16);
+        if (isNaN(num)) {
+            return { front: hex, top: hex, side: hex, dark: '#000000' };
+        }
+        let r = (num >> 16) & 255;
+        let g = (num >> 8) & 255;
+        let b = num & 255;
+
+        const topR = Math.min(255, Math.floor(r * 1.38));
+        const topG = Math.min(255, Math.floor(g * 1.38));
+        const topB = Math.min(255, Math.floor(b * 1.38));
+
+        const sideR = Math.floor(r * 0.68);
+        const sideG = Math.floor(g * 0.68);
+        const sideB = Math.floor(b * 0.68);
+
+        const darkR = Math.floor(r * 0.40);
+        const darkG = Math.floor(g * 0.40);
+        const darkB = Math.floor(b * 0.40);
+
+        return {
+            front: `rgb(${r}, ${g}, ${b})`,
+            top: `rgb(${topR}, ${topG}, ${topB})`,
+            side: `rgb(${sideR}, ${sideG}, ${sideB})`,
+            dark: `rgb(${darkR}, ${darkG}, ${darkB})`
+        };
+    }
+
+
     drawPiP(videoElement, landmarks, calibration, currentGesture) {
         if (!this.pipCtx || !videoElement || videoElement.readyState < 2) return;
         const w = this.pipCanvas.width;
