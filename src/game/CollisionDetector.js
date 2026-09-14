@@ -5,9 +5,17 @@ export class CollisionDetector {
     /**
      * @param {object} player { lane, y, isJumping, isDucking, z, baseWidth, depth }
      * @param {Array<object>} obstacles 
+     * @param {import('./PowerUpManager.js').PowerUpManager|null} [powerUpManager=null]
      * @returns {object|null}
      */
-    check(player, obstacles) {
+    check(player, obstacles, powerUpManager = null) {
+        if (powerUpManager) {
+            const activeType = powerUpManager.getActiveType();
+            if (activeType === 'ROCKET') {
+                return null; // Invincible hyper-speed flight
+            }
+        }
+
         for (const obs of obstacles) {
             if (!obs.active) continue;
 
@@ -21,17 +29,28 @@ export class CollisionDetector {
             if (zDistance <= zThreshold || crossed) {
                 // X/Lane equality
                 if (player.lane === obs.lane) {
+                    let hit = false;
                     // Y / state logic
                     if (obs.type === 'LOW') {
                         if (player.y <= obs.baseHeight * 0.65) {
-                            return obs;
+                            hit = true;
                         }
                     } else if (obs.type === 'HIGH') {
                         if (!player.isDucking) {
-                            return obs;
+                            hit = true;
                         }
                     } else if (obs.type === 'SIDE') {
-                        return obs; // Must switch lanes
+                        hit = true; // Must switch lanes
+                    }
+
+                    if (hit) {
+                        // Shield absorption check
+                        if (powerUpManager && powerUpManager.consumeShield()) {
+                            obs.active = false; // Destroy obstacle on shield impact
+                            obs.shieldAbsorbed = true; // Flag for particle/audio trigger
+                            return null; // Hit absorbed safely!
+                        }
+                        return obs;
                     }
                 }
             }

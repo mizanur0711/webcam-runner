@@ -8,8 +8,8 @@ export class GameStateMachine {
   /**
    * @param {Object} systems - All game subsystems
    */
-  constructor({ presenceDetector, calibrator, obstacleManager, collisionDetector, scoreManager, difficultyManager, audioManager, renderer, uiRenderer, characterRenderer, obstacleRenderer, roadRenderer, backgroundRenderer, collectibleManager, collectibleRenderer, particleManager, particleRenderer }) {
-    this.sys = { presenceDetector, calibrator, obstacleManager, collisionDetector, scoreManager, difficultyManager, audioManager, renderer, uiRenderer, characterRenderer, obstacleRenderer, roadRenderer, backgroundRenderer, collectibleManager, collectibleRenderer, particleManager, particleRenderer };
+  constructor({ presenceDetector, calibrator, obstacleManager, collisionDetector, scoreManager, difficultyManager, audioManager, renderer, uiRenderer, characterRenderer, obstacleRenderer, roadRenderer, backgroundRenderer, collectibleManager, collectibleRenderer, particleManager, particleRenderer, powerUpManager, powerUpRenderer }) {
+    this.sys = { presenceDetector, calibrator, obstacleManager, collisionDetector, scoreManager, difficultyManager, audioManager, renderer, uiRenderer, characterRenderer, obstacleRenderer, roadRenderer, backgroundRenderer, collectibleManager, collectibleRenderer, particleManager, particleRenderer, powerUpManager, powerUpRenderer };
     if (this.sys.obstacleManager && this.sys.difficultyManager) {
       this.sys.obstacleManager.init(this.sys.difficultyManager);
     }
@@ -383,6 +383,7 @@ export class GameStateMachine {
     if (this.previousState !== 'PAUSED') {
       this.sys.obstacleManager.reset();
       if (this.sys.collectibleManager) this.sys.collectibleManager.reset();
+      if (this.sys.powerUpManager) this.sys.powerUpManager.reset();
       if (this.sys.particleManager) this.sys.particleManager.reset();
       this.sys.scoreManager.reset();
       this.sys.difficultyManager.reset();
@@ -473,14 +474,52 @@ export class GameStateMachine {
 
     // Difficulty / speed
     this.sys.difficultyManager.update(dt);
-    const speed = this.sys.difficultyManager.getCurrentSpeed();
+    let speed = this.sys.difficultyManager.getCurrentSpeed();
+
+    // Check active power-up state
+    const activeType = this.sys.powerUpManager ? this.sys.powerUpManager.getActiveType() : null;
+    const isRocket = (activeType === 'ROCKET');
+    const isMagnet = (activeType === 'MAGNET');
+
+    if (isRocket) {
+      speed *= 2.2; // Hyper-speed boost
+      this.player.y = Math.min(120, this.player.y + 400 * dt); // smooth elevation to flight height
+      if (this.sys.particleManager) {
+        this.sys.particleManager.emitRocketFlames(this.player.visualX, this.player.y, 320);
+      }
+    }
+
+    // PowerUpManager update & pickup checks
+    if (this.sys.powerUpManager) {
+      this.sys.powerUpManager.update(dt, speed, this.sys.obstacleManager.getActiveObstacles());
+      const pickedUp = this.sys.powerUpManager.checkPickups(this.player);
+      if (pickedUp) {
+        if (this.sys.audioManager) {
+          if (pickedUp === 'ROCKET') this.sys.audioManager.playRocketBoost();
+          else this.sys.audioManager.playPowerUpPickup(pickedUp);
+        }
+        if (this.sys.particleManager) {
+          this.sys.particleManager.emitStarSparkles(this.player.visualX, this.player.y + 40, 320);
+        }
+      }
+    }
 
     // Obstacles
     this.sys.obstacleManager.update(dt, speed);
 
+    // Check for shield absorbed obstacle impact
+    const activeObsList = this.sys.obstacleManager.getActiveObstacles();
+    for (const obs of activeObsList) {
+      if (obs.shieldAbsorbed) {
+        obs.shieldAbsorbed = false;
+        if (this.sys.audioManager) this.sys.audioManager.playShieldShatter();
+        if (this.sys.particleManager) this.sys.particleManager.emitShieldShatter(obs.x, 35, obs.z);
+      }
+    }
+
     // Collectibles update & pickup detection
     if (this.sys.collectibleManager) {
-      this.sys.collectibleManager.update(dt, speed, this.sys.obstacleManager.getActiveObstacles());
+      this.sys.collectibleManager.update(dt, speed, this.sys.obstacleManager.getActiveObstacles(), isMagnet, this.player);
       const starsCaught = this.sys.collectibleManager.checkPickups(this.player);
       if (starsCaught > 0) {
         const mult = this.sys.difficultyManager ? this.sys.difficultyManager.getScoreMultiplier() : 1.0;
@@ -495,7 +534,7 @@ export class GameStateMachine {
     // Particles update & footstep dust
     if (this.sys.particleManager) {
       this.sys.particleManager.update(dt, speed);
-      if (!this.player.isJumping && !this.player.isDucking) {
+      if (!this.player.isJumping && !this.player.isDucking && !isRocket) {
         this.stateData.dustTimer = (this.stateData.dustTimer || 0) + dt;
         if (this.stateData.dustTimer > 0.12) {
           this.sys.particleManager.emitFootstepDust(this.player.visualX, 320);
@@ -512,7 +551,7 @@ export class GameStateMachine {
     this.stateData.scrollOffset += speed * 60 * dt;
 
     // Collision
-    const hit = this.sys.collisionDetector.check(this.player, this.sys.obstacleManager.getActiveObstacles());
+    const hit = this.sys.collisionDetector.check(this.player, this.sys.obstacleManager.getActiveObstacles(), this.sys.powerUpManager);
     if (hit) {
       this.transition('GAME_OVER');
       return;
@@ -546,12 +585,32 @@ export class GameStateMachine {
       }
     }
 
+    // Draw power-up items on track
+    const powerUpItems = this.sys.powerUpManager ? this.sys.powerUpManager.getActivePowerUps() : [];
+    if (this.sys.powerUpRenderer && powerUpItems.length > 0) {
+      const sortedPowerUps = [...powerUpItems].sort((a, b) => b.z - a.z);
+      for (const item of sortedPowerUps) {
+        this.sys.powerUpRenderer.renderItem(ctx, item);
+      }
+    }
+
     // Draw character
     if (this.sys.characterRenderer) {
       this.sys.characterRenderer.render(ctx, {
         ...this.player,
         x: this.player.visualX
       });
+    }
+
+    // Draw active power-up aura / shield bubble / rocket flame
+    const currentActivePowerUp = this.sys.powerUpManager ? this.sys.powerUpManager.getActiveType() : null;
+    if (this.sys.powerUpRenderer && currentActivePowerUp) {
+      this.sys.powerUpRenderer.renderActiveAura(
+        ctx,
+        this.player,
+        currentActivePowerUp,
+        this.sys.powerUpManager.activeEffect ? this.sys.powerUpManager.activeEffect.remainingTime : 0
+      );
     }
 
     // Draw 3D particles (dust, sparkles, rings, confetti)
@@ -572,7 +631,8 @@ export class GameStateMachine {
         this.player.tier,
         this.gestureDetector ? this.gestureDetector.currentGesture : null,
         this.sys.difficultyManager ? this.sys.difficultyManager.getBadge() : null,
-        this.sys.scoreManager.starsCollected
+        this.sys.scoreManager.starsCollected,
+        this.sys.powerUpManager ? this.sys.powerUpManager.activeEffect : null
       );
     }
   }

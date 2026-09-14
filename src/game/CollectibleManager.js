@@ -29,8 +29,10 @@ export class CollectibleManager {
      * @param {number} dt 
      * @param {number} speed 
      * @param {Array<object>} activeObstacles 
+     * @param {boolean} [isMagnetActive=false]
+     * @param {object} [player=null]
      */
-    update(dt, speed, activeObstacles = []) {
+    update(dt, speed, activeObstacles = [], isMagnetActive = false, player = null) {
         const moveDist = speed * 60 * dt;
 
         // Move and rotate active collectibles
@@ -39,6 +41,14 @@ export class CollectibleManager {
                 item.prevZ = item.z;
                 item.z -= moveDist;
                 item.rotation += dt * 4.0; // dynamic spin animation
+
+                // Star Magnet Attraction Logic
+                if (isMagnetActive && player && item.z < 800 && item.z > 150) {
+                    const targetX = player.visualX !== undefined ? player.visualX : (player.lane * 180);
+                    const decay = 1 - Math.exp(-14 * dt);
+                    item.x += (targetX - item.x) * decay;
+                    item.lane = player.lane; // sync lane for pickup collision check
+                }
 
                 if (item.z < -100) {
                     item.active = false;

@@ -7,7 +7,7 @@ export class UIRenderer {
         ctx.clearRect(0, 0, this.renderer.width, this.renderer.height);
     }
 
-    renderHUD(ctx, score, highScore, tier, currentGesture, difficultyBadge, starsCount = 0) {
+    renderHUD(ctx, score, highScore, tier, currentGesture, difficultyBadge, starsCount = 0, activePowerUp = null) {
         this.clear(ctx);
         const w = this.renderer.width;
         
@@ -37,6 +37,51 @@ export class UIRenderer {
             ctx.font = 'bold 20px Fredoka, sans-serif';
             ctx.fillStyle = '#FFD700';
             ctx.fillText(difficultyBadge, 20, 72);
+        }
+
+        // Active Power-Up Countdown Ring Badge (Top Left under difficulty)
+        if (activePowerUp && activePowerUp.remainingTime > 0) {
+            const bx = 45;
+            const by = 115;
+            const r = 22;
+
+            const iconMap = { 'MAGNET': '🧲', 'SHIELD': '🛡️', 'ROCKET': '🚀' };
+            const colorMap = { 'MAGNET': '#00D2FF', 'SHIELD': '#00FFCC', 'ROCKET': '#FF6B00' };
+
+            const icon = iconMap[activePowerUp.type] || '⚡';
+            const mainColor = colorMap[activePowerUp.type] || '#FFD700';
+            const progress = activePowerUp.remainingTime / activePowerUp.maxDuration;
+
+            ctx.save();
+            // Background Badge Circle
+            ctx.beginPath();
+            ctx.arc(bx, by, r, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(20, 24, 33, 0.85)';
+            ctx.fill();
+
+            // Circular Countdown Arc
+            ctx.beginPath();
+            ctx.arc(bx, by, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
+            ctx.strokeStyle = mainColor;
+            ctx.lineWidth = 4;
+            ctx.shadowColor = mainColor;
+            ctx.shadowBlur = 8;
+            ctx.stroke();
+
+            // Emoji icon inside
+            ctx.font = '20px Fredoka, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.shadowBlur = 0;
+            ctx.fillText(icon, bx, by + 1);
+
+            // Timer text
+            ctx.textAlign = 'left';
+            ctx.font = 'bold 18px Fredoka, sans-serif';
+            ctx.fillStyle = mainColor;
+            ctx.fillText(`${Math.ceil(activePowerUp.remainingTime)}s`, bx + 30, by + 6);
+
+            ctx.restore();
         }
 
         // Top-right Stars Counter Badge

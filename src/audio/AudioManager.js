@@ -372,6 +372,90 @@ class AudioManager {
             osc.stop(this.ctx.currentTime + note.time + durationPerNote);
         });
     }
+
+    /**
+     * Plays a high energetic ascending power-up pickup chime.
+     * @param {string} [type]
+     */
+    playPowerUpPickup(type) {
+        if (this._muted || !this.ctx) return;
+
+        const notes = [
+            { freq: 523.25, time: 0 },    // C5
+            { freq: 659.25, time: 0.07 }, // E5
+            { freq: 783.99, time: 0.14 }, // G5
+            { freq: 1046.50, time: 0.21 },// C6
+            { freq: 1318.51, time: 0.28 } // E6
+        ];
+
+        const durationPerNote = 0.2;
+
+        notes.forEach(note => {
+            const osc = this.ctx.createOscillator();
+            const gainNode = this.ctx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(note.freq, this.ctx.currentTime + note.time);
+
+            gainNode.gain.setValueAtTime(0, this.ctx.currentTime + note.time);
+            gainNode.gain.linearRampToValueAtTime(0.25, this.ctx.currentTime + note.time + 0.02);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + note.time + durationPerNote);
+
+            osc.connect(gainNode);
+            gainNode.connect(this.masterGain);
+
+            osc.start(this.ctx.currentTime + note.time);
+            osc.stop(this.ctx.currentTime + note.time + durationPerNote);
+        });
+    }
+
+    /**
+     * Plays a glass/crystal shield shatter sound when an obstacle is absorbed.
+     */
+    playShieldShatter() {
+        if (this._muted || !this.ctx) return;
+
+        const osc = this.ctx.createOscillator();
+        const gainNode = this.ctx.createGain();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(800, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(150, this.ctx.currentTime + 0.3);
+
+        gainNode.gain.setValueAtTime(0, this.ctx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.3, this.ctx.currentTime + 0.02);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+
+        osc.connect(gainNode);
+        gainNode.connect(this.masterGain);
+
+        osc.start(this.ctx.currentTime);
+        osc.stop(this.ctx.currentTime + 0.3);
+    }
+
+    /**
+     * Plays a whirring rocket jet engine surge sound.
+     */
+    playRocketBoost() {
+        if (this._muted || !this.ctx) return;
+
+        const osc = this.ctx.createOscillator();
+        const gainNode = this.ctx.createGain();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(200, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(850, this.ctx.currentTime + 0.4);
+
+        gainNode.gain.setValueAtTime(0, this.ctx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.28, this.ctx.currentTime + 0.05);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.5);
+
+        osc.connect(gainNode);
+        gainNode.connect(this.masterGain);
+
+        osc.start(this.ctx.currentTime);
+        osc.stop(this.ctx.currentTime + 0.5);
+    }
 }
 
 

@@ -170,6 +170,63 @@ export class ParticleManager {
     }
 
     /**
+     * Emit shield shatter glass/cyan burst particles
+     * @param {number} worldX 
+     * @param {number} worldY 
+     * @param {number} worldZ 
+     */
+    emitShieldShatter(worldX, worldY, worldZ) {
+        const colors = ['#00FFCC', '#00D2FF', '#FFFFFF', '#0099FF'];
+        for (let i = 0; i < 20; i++) {
+            const p = this.getFreeParticle();
+            if (!p) break;
+
+            const angle = Math.random() * Math.PI * 2;
+            const spd = 4 + Math.random() * 6;
+
+            p.active = true;
+            p.type = 'SPARKLE';
+            p.x = worldX;
+            p.y = worldY + 40;
+            p.z = worldZ;
+            p.vx = Math.cos(angle) * spd;
+            p.vy = (Math.random() - 0.5) * spd;
+            p.vz = Math.sin(angle) * spd;
+            p.size = 10 + Math.random() * 8;
+            p.color = colors[Math.floor(Math.random() * colors.length)];
+            p.life = 0.5 + Math.random() * 0.3;
+            p.maxLife = p.life;
+        }
+    }
+
+    /**
+     * Emit rocket flame exhaust particles
+     * @param {number} worldX 
+     * @param {number} worldY 
+     * @param {number} worldZ 
+     */
+    emitRocketFlames(worldX, worldY, worldZ) {
+        const colors = ['#FFD700', '#FF6B00', '#FF2200', '#FFFFFF'];
+        for (let i = 0; i < 3; i++) {
+            const p = this.getFreeParticle();
+            if (!p) break;
+
+            p.active = true;
+            p.type = 'SPARKLE';
+            p.x = worldX + (Math.random() * 16 - 8);
+            p.y = worldY;
+            p.z = worldZ - 10;
+            p.vx = (Math.random() - 0.5) * 2;
+            p.vy = -3 - Math.random() * 2;
+            p.vz = -4 - Math.random() * 3;
+            p.size = 14 + Math.random() * 8;
+            p.color = colors[Math.floor(Math.random() * colors.length)];
+            p.life = 0.3 + Math.random() * 0.2;
+            p.maxLife = p.life;
+        }
+    }
+
+    /**
      * Emit celebratory high score confetti shower
      */
     emitConfettiShower() {
